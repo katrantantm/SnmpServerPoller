@@ -78,7 +78,7 @@ namespace SnmpServerPoller.Snmp
                 {
                     // Применение настроек таймаута и повторных попыток
                     snmp.Timeout = _timeout;
-                    snmp.Retries = _retries;
+                    snmp.MaxRetry = _retries; // Исправлено: было snmp.Retries
                     
                     Dictionary<Oid, AsnType> result = snmp.Get(SnmpVersion.Ver2, new[] { oid });
                     if (result != null && result.Count > 0)
@@ -168,7 +168,7 @@ namespace SnmpServerPoller.Snmp
                 {
                     // Применение настроек таймаута и повторных попыток
                     snmp.Timeout = _timeout;
-                    snmp.Retries = _retries;
+                    snmp.MaxRetry = _retries; // Исправлено: было snmp.Retries
                     
                     Dictionary<Oid, AsnType> snmpResult = snmp.Walk(SnmpVersion.Ver2, rootOid);
                     if (snmpResult == null) return result;
