@@ -30,14 +30,22 @@ namespace SnmpServerPoller.Logging
 
         private static LogLevel ParseLogLevel(string level)
         {
-            return level.ToLower() switch
+            string lower = level.ToLower();
+            switch (lower)
             {
-                "debug" => LogLevel.Debug,
-                "info" or "information" => LogLevel.Info,
-                "warn" or "warning" => LogLevel.Warn,
-                "error" => LogLevel.Error,
-                _ => LogLevel.Info
-            };
+                case "debug":
+                    return LogLevel.Debug;
+                case "info":
+                case "information":
+                    return LogLevel.Info;
+                case "warn":
+                case "warning":
+                    return LogLevel.Warn;
+                case "error":
+                    return LogLevel.Error;
+                default:
+                    return LogLevel.Info;
+            }
         }
 
         private int GetPriority(LogLevel level)

@@ -138,7 +138,10 @@ namespace SnmpServerPoller.Snmp
                     string decoded = Encoding.UTF8.GetString(data);
                     if (decoded.All(c => char.IsControl(c) || c >= 32)) return decoded;
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    _logger?.Debug($"Ошибка декодирования HEX '{input}': {ex.Message}");
+                }
             }
             return input;
         }

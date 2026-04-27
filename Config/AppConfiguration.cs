@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using SnmpServerPoller.Logging;
 
 namespace SnmpServerPoller.Config
 {
@@ -128,16 +129,25 @@ namespace SnmpServerPoller.Config
         public bool EnableColors { get; set; } = true;
         public string FilePath { get; set; }
 
-        public LogLevel GetMinLogLevel()
+        /// <summary>
+        /// Получение минимального уровня логирования из строки
+        /// </summary>
+        public Logging.LogLevel GetMinLogLevel()
         {
-            return MinLevel.ToLower() switch
+            string level = MinLevel.ToLower();
+            switch (level)
             {
-                "debug" => LogLevel.Debug,
-                "info" => LogLevel.Info,
-                "warn" => LogLevel.Warn,
-                "error" => LogLevel.Error,
-                _ => LogLevel.Info
-            };
+                case "debug":
+                    return Logging.LogLevel.Debug;
+                case "info":
+                    return Logging.LogLevel.Info;
+                case "warn":
+                    return Logging.LogLevel.Warn;
+                case "error":
+                    return Logging.LogLevel.Error;
+                default:
+                    return Logging.LogLevel.Info;
+            }
         }
     }
 

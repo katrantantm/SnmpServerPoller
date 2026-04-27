@@ -1,75 +1,96 @@
-# Compiled and build artifacts
-*.pyc
-__pycache__/
-*.o
+```
+# Build artifacts
 *.obj
 *.exe
 *.dll
 *.so
-*.class
+*.a
 *.out
+*.pyc
+*.class
+*.o
 
 # Dependencies
-node_modules/
-venv/
-.venv/
-.env
-.env.local
-*.env.*
-
-# Build directories
-dist/
-build/
-target/
-*.tmp
+packages/
+lib/
+bin/
+obj/
 
 # Logs
 *.log
 
-# Editors
+# Temporary files
+*.tmp
+*.temp
+
+# Environment
+.env
+.env.local
+*.env.*
+
+# Editor/IDE
+.vs/
 .vscode/
 .idea/
-*.swp
-*.swo
+*.userprefs
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
 
-# Coverage
+# OS generated files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Icon?
+desktop.ini
+
+# Build outputs
+Debug/
+Release/
+x64/
+x86/
+build/
+dist/
+target/
+
+# Test coverage
 coverage/
 htmlcov/
 .coverage
 
-# OS
-.DS_Store
-Thumbs.db
-
-# MyPy
+# Python specific
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage*
+.pytest_cache/
 .mypy_cache/
 
-# PyTest
-.pytest_cache/
+# Node.js specific
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-# Gradle
-.gradle/
+# Java specific
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+hs_err_pid*
+replay_pid*
 
-# Compressed files
-*.zip
-*.gz
-*.tar
-*.tgz
-*.bz2
-*.xz
-*.7z
-*.rar
-*.zst
-*.lz4
-*.lzh
-*.cab
-*.arj
-*.rpm
-*.deb
-*.Z
-*.lz
-*.lzo
-*.tar.gz
-*.tar.bz2
-*.tar.xz
-*.tar.zst
+# C# specific
+*.userprefs
+*.userosscache
+*.sln.docstates
+[bB]in/
+[Oo]bj/
+```
