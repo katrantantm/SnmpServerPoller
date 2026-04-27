@@ -12,6 +12,13 @@ namespace SnmpServerPoller.Logging
         private readonly bool _enableColors;
 
         /// <summary>
+        /// Конструктор по умолчанию
+        /// </summary>
+        public ConsoleLogger() : this(LogLevel.Info, true)
+        {
+        }
+
+        /// <summary>
         /// Конструктор с типизированным уровнем логирования
         /// </summary>
         public ConsoleLogger(LogLevel minLevel, bool enableColors = true)
