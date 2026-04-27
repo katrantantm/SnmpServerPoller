@@ -2,27 +2,57 @@
 
 namespace SnmpServerPoller.Logging
 {
-    public class ConsoleLogger(string minLevel = "Information") : ILogger
+    /// <summary>
+    /// Консольный логгер с поддержкой уровней и цветного вывода
+    /// </summary>
+    public class ConsoleLogger : ILogger
     {
-        private readonly string _minLevel = minLevel;
+        private readonly LogLevel _minLevel;
         private readonly object _lockObj = new();
+        private readonly bool _enableColors;
 
-        private int GetPriority(string level)
+        /// <summary>
+        /// Конструктор с уровнем логирования в виде строки (для обратной совместимости)
+        /// </summary>
+        public ConsoleLogger(string minLevel = "Information", bool enableColors = true)
+            : this(ParseLogLevel(minLevel), enableColors)
         {
-            if (level == "Debug") return 0;
-            if (level == "Information") return 1;
-            if (level == "Warn") return 2;
-            if (level == "Error") return 3;
-            return 1;
         }
 
-        private void Write(string level, string message, Exception ex, params object[] args)
+        /// <summary>
+        /// Конструктор с типизированным уровнем логирования
+        /// </summary>
+        public ConsoleLogger(LogLevel minLevel = LogLevel.Info, bool enableColors = true)
+        {
+            _minLevel = minLevel;
+            _enableColors = enableColors;
+        }
+
+        private static LogLevel ParseLogLevel(string level)
+        {
+            return level.ToLower() switch
+            {
+                "debug" => LogLevel.Debug,
+                "info" or "information" => LogLevel.Info,
+                "warn" or "warning" => LogLevel.Warn,
+                "error" => LogLevel.Error,
+                _ => LogLevel.Info
+            };
+        }
+
+        private int GetPriority(LogLevel level)
+        {
+            return (int)level;
+        }
+
+        private void Write(LogLevel level, string message, Exception ex, params object[] args)
         {
             if (GetPriority(level) < GetPriority(_minLevel)) return;
 
             string formatted = args.Length > 0 ? string.Format(message, args) : message;
             string timestamp = DateTime.Now.ToString("HH:mm:ss.fff");
-            string prefix = "[" + timestamp + "] [" + level + "] ";
+            string levelStr = level.ToString().Substring(0, 4).ToUpper();
+            string prefix = "[" + timestamp + "] [" + levelStr + "] ";
             string fullMessage = prefix + formatted;
 
             if (ex != null)
@@ -33,43 +63,50 @@ namespace SnmpServerPoller.Logging
 
             lock (_lockObj)
             {
-                ConsoleColor originalColor = Console.ForegroundColor;
+                if (_enableColors)
+                {
+                    ConsoleColor originalColor = Console.ForegroundColor;
 
-                if (level == "Error")
-                    Console.ForegroundColor = ConsoleColor.Red;
-                else if (level == "Warn")
-                    Console.ForegroundColor = ConsoleColor.Yellow;
-                else if (level == "Debug")
-                    Console.ForegroundColor = ConsoleColor.Gray;
+                    if (level == LogLevel.Error)
+                        Console.ForegroundColor = ConsoleColor.Red;
+                    else if (level == LogLevel.Warn)
+                        Console.ForegroundColor = ConsoleColor.Yellow;
+                    else if (level == LogLevel.Debug)
+                        Console.ForegroundColor = ConsoleColor.Gray;
 
-                Console.WriteLine(fullMessage);
-                Console.ForegroundColor = originalColor;
+                    Console.WriteLine(fullMessage);
+                    Console.ForegroundColor = originalColor;
+                }
+                else
+                {
+                    Console.WriteLine(fullMessage);
+                }
             }
         }
 
         public void Debug(string message, params object[] args)
         {
-            Write("Debug", message, null, args);
+            Write(LogLevel.Debug, message, null, args);
         }
 
         public void Info(string message, params object[] args)
         {
-            Write("Information", message, null, args);
+            Write(LogLevel.Info, message, null, args);
         }
 
         public void Warn(string message, params object[] args)
         {
-            Write("Warn", message, null, args);
+            Write(LogLevel.Warn, message, null, args);
         }
 
         public void Error(string message, params object[] args)
         {
-            Write("Error", message, null, args);
+            Write(LogLevel.Error, message, null, args);
         }
 
         public void Error(string message, Exception ex, params object[] args)
         {
-            Write("Error", message, ex, args);
+            Write(LogLevel.Error, message, ex, args);
         }
     }
 }

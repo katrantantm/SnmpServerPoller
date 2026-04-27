@@ -6,27 +6,87 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Net;
 
 namespace SnmpServerPoller.Snmp
 {
-    public class SnmpManager(string targetIp, string community, ILogger logger = null)
+    /// <summary>
+    /// Интерфейс для SNMP-клиента, позволяющий мокировать зависимости в тестах
+    /// </summary>
+    public interface ISnmpClient
     {
-        private readonly string _targetIp = targetIp;
-        private readonly string _community = community;
-        private readonly ILogger _logger = logger ?? new ConsoleLogger();
+        string GetScalar(string oid);
+        ulong GetScalarAsLong(string oid);
+        Dictionary<string, string> WalkTable(string rootOid);
+    }
+
+    /// <summary>
+    /// Менеджер для работы с SNMP-запросами
+    /// Реализует IDisposable для освобождения ресурсов
+    /// </summary>
+    public class SnmpManager : ISnmpClient, IDisposable
+    {
+        private readonly string _targetIp;
+        private readonly string _community;
+        private readonly ILogger _logger;
+        private readonly int _timeout;
+        private readonly int _retries;
+        private bool _disposed = false;
+
+        /// <summary>
+        /// Конструктор с параметрами конфигурации
+        /// </summary>
+        public SnmpManager(SnmpSettings settings, ILogger logger = null)
+            : this(settings.TargetIp, settings.Community, logger, settings.Timeout, settings.Retries)
+        {
+        }
+
+        /// <summary>
+        /// Конструктор с явными параметрами (для обратной совместимости)
+        /// </summary>
+        public SnmpManager(string targetIp, string community, ILogger logger = null, int timeout = 3000, int retries = 2)
+        {
+            if (string.IsNullOrWhiteSpace(targetIp))
+                throw new ArgumentException("Target IP не может быть пустым", nameof(targetIp));
+            
+            if (!IPAddress.TryParse(targetIp, out _))
+                throw new ArgumentException($"Неверный формат IP-адреса: {targetIp}", nameof(targetIp));
+            
+            if (string.IsNullOrWhiteSpace(community))
+                throw new ArgumentException("Community string не может быть пустым", nameof(community));
+
+            _targetIp = targetIp;
+            _community = community;
+            _logger = logger ?? new ConsoleLogger();
+            _timeout = Math.Max(1000, Math.Min(timeout, 30000)); // Ограничение 1-30 сек
+            _retries = Math.Max(0, Math.Min(retries, 5)); // Ограничение 0-5 попыток
+            
+            _logger.Debug("SnmpManager инициализирован для {0} (timeout={1}ms, retries={2})", 
+                _targetIp, _timeout, _retries);
+        }
 
         public string GetScalar(string oid)
         {
+            if (_disposed)
+                throw new ObjectDisposedException(nameof(SnmpManager));
+
             try
             {
                 _logger.Debug("Запрос OID: {0}", oid);
-                SimpleSnmp snmp = new(_targetIp, _community);
-                Dictionary<Oid, AsnType> result = snmp.Get(SnmpVersion.Ver2, new[] { oid });
-                if (result != null && result.Count > 0)
+                
+                using (SimpleSnmp snmp = new(_targetIp, _community))
                 {
-                    string value = DecodeRawData(result.First().Value.ToString());
-                    _logger.Debug("Получено: {0} = {1}", oid, value);
-                    return value;
+                    // Применение настроек таймаута и повторных попыток
+                    snmp.Timeout = _timeout;
+                    snmp.Retries = _retries;
+                    
+                    Dictionary<Oid, AsnType> result = snmp.Get(SnmpVersion.Ver2, new[] { oid });
+                    if (result != null && result.Count > 0)
+                    {
+                        string value = DecodeRawData(result.First().Value.ToString());
+                        _logger.Debug("Получено: {0} = {1}", oid, value);
+                        return value;
+                    }
                 }
             }
             catch (Exception ex)
@@ -93,23 +153,33 @@ namespace SnmpServerPoller.Snmp
 
         public Dictionary<string, string> WalkTable(string rootOid)
         {
+            if (_disposed)
+                throw new ObjectDisposedException(nameof(SnmpManager));
+
             var result = new Dictionary<string, string>();
             try
             {
                 _logger.Debug("Walk таблицы: {0}", rootOid);
-                SimpleSnmp snmp = new(_targetIp, _community);
-                Dictionary<Oid, AsnType> snmpResult = snmp.Walk(SnmpVersion.Ver2, rootOid);
-                if (snmpResult == null) return result;
-
-                foreach (var kvp in snmpResult)
+                
+                using (SimpleSnmp snmp = new(_targetIp, _community))
                 {
-                    string fullOid = kvp.Key.ToString();
-                    string index = fullOid.Substring(rootOid.Length);
-                    if (index.StartsWith(".")) index = index.Substring(1);
-                    result[index] = DecodeRawData(kvp.Value.ToString());
-                }
+                    // Применение настроек таймаута и повторных попыток
+                    snmp.Timeout = _timeout;
+                    snmp.Retries = _retries;
+                    
+                    Dictionary<Oid, AsnType> snmpResult = snmp.Walk(SnmpVersion.Ver2, rootOid);
+                    if (snmpResult == null) return result;
 
-                _logger.Debug("Walk {0}: получено {1} записей", rootOid, result.Count);
+                    foreach (var kvp in snmpResult)
+                    {
+                        string fullOid = kvp.Key.ToString();
+                        string index = fullOid.Substring(rootOid.Length);
+                        if (index.StartsWith(".")) index = index.Substring(1);
+                        result[index] = DecodeRawData(kvp.Value.ToString());
+                    }
+
+                    _logger.Debug("Walk {0}: получено {1} записей", rootOid, result.Count);
+                }
             }
             catch (Exception ex)
             {
@@ -317,5 +387,45 @@ namespace SnmpServerPoller.Snmp
             _logger.Info("Найдено устройств: {0}", list.Count);
             return list;
         }
+
+        #region IDisposable Implementation
+
+        /// <summary>
+        /// Освобождение неуправляемых ресурсов
+        /// </summary>
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// Шаблонный метод освобождения ресурсов
+        /// </summary>
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposed)
+            {
+                if (disposing)
+                {
+                    // Освобождение управляемых ресурсов (если есть)
+                    _logger.Debug("SnmpManager освобождает управляемые ресурсы");
+                }
+
+                // Освобождение неуправляемых ресурсов (если есть)
+                _disposed = true;
+                _logger.Debug("SnmpManager освобождён");
+            }
+        }
+
+        /// <summary>
+        /// Финализатор для гарантированного освобождения ресурсов
+        /// </summary>
+        ~SnmpManager()
+        {
+            Dispose(false);
+        }
+
+        #endregion
     }
 }
