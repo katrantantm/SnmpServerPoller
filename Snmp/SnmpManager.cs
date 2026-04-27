@@ -57,7 +57,7 @@ namespace SnmpServerPoller.Snmp
 
             _targetIp = targetIp;
             _community = community;
-            _logger = logger ?? new ConsoleLogger();
+            _logger = logger ?? new ConsoleLogger(LogLevel.Info);
             _timeout = Math.Max(1000, Math.Min(timeout, 30000));
             _retries = Math.Max(0, Math.Min(retries, 5));
 

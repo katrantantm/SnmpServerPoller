@@ -12,20 +12,20 @@ namespace SnmpServerPoller.Logging
         private readonly bool _enableColors;
 
         /// <summary>
-        /// Конструктор с уровнем логирования в виде строки (для обратной совместимости)
-        /// </summary>
-        public ConsoleLogger(string minLevel = "Information", bool enableColors = true)
-            : this(ParseLogLevel(minLevel), enableColors)
-        {
-        }
-
-        /// <summary>
         /// Конструктор с типизированным уровнем логирования
         /// </summary>
-        public ConsoleLogger(LogLevel minLevel = LogLevel.Info, bool enableColors = true)
+        public ConsoleLogger(LogLevel minLevel, bool enableColors = true)
         {
             _minLevel = minLevel;
             _enableColors = enableColors;
+        }
+
+        /// <summary>
+        /// Конструктор с уровнем логирования в виде строки (для загрузки из конфига)
+        /// </summary>
+        public ConsoleLogger(string minLevelString, bool enableColors = true)
+            : this(ParseLogLevel(minLevelString), enableColors)
+        {
         }
 
         private static LogLevel ParseLogLevel(string level)
