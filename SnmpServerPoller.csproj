@@ -72,7 +72,6 @@
   <ItemGroup>
     <Compile Include="Config\SnmpConfig.cs" />
     <Compile Include="Excel\ExcelReporter.cs" />
-    <Compile Include="IsExternalInit.cs" />
     <Compile Include="Logging\CompositeLogger.cs" />
     <Compile Include="Logging\ConsoleLogger.cs" />
     <Compile Include="Logging\FileLogger.cs" />
