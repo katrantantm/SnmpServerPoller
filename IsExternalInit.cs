@@ -2,6 +2,7 @@
 // Required because .NET Framework does not include System.Runtime.CompilerServices.IsExternalInit by default
 
 using System;
+using System.ComponentModel;
 
 namespace System.Runtime.CompilerServices
 {
@@ -9,7 +10,8 @@ namespace System.Runtime.CompilerServices
     /// Reserved to be used by the compiler for tracking metadata.
     /// This class should not be used by developers in source code.
     /// </summary>
-    internal static class IsExternalInit
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public static class IsExternalInit
     {
     }
 }
