@@ -47,36 +47,36 @@ namespace SnmpServerPoller
     /// </summary>
     public class ServerSurveyResult
     {
-        public string ServerIp { get; init; }
-        public string SysName { get; init; }
-        public SystemInfo SystemInfo { get; init; }
-        public List<InterfaceInfo> Interfaces { get; init; } = new();
-        public List<IpAddressInfo> IpAddresses { get; init; } = new();
-        public List<ArpEntry> ArpTable { get; init; } = new();
-        public List<RouteEntry> Routes { get; init; } = new();
-        public List<DiskInfo> Disks { get; init; } = new();
-        public List<CpuCore> CpuCores { get; init; } = new();
-        public List<ProcessInfo> Processes { get; init; } = new();
-        public List<DeviceInfo> Devices { get; init; } = new();
-        public ProtocolStats ProtocolStats { get; init; } = new();
+        public string ServerIp { get; set; } = string.Empty;
+        public string SysName { get; set; } = string.Empty;
+        public SystemInfo SystemInfo { get; set; } = new();
+        public List<InterfaceInfo> Interfaces { get; set; } = new();
+        public List<IpAddressInfo> IpAddresses { get; set; } = new();
+        public List<ArpEntry> ArpTable { get; set; } = new();
+        public List<RouteEntry> Routes { get; set; } = new();
+        public List<DiskInfo> Disks { get; set; } = new();
+        public List<CpuCore> CpuCores { get; set; } = new();
+        public List<ProcessInfo> Processes { get; set; } = new();
+        public List<DeviceInfo> Devices { get; set; } = new();
+        public ProtocolStats ProtocolStats { get; set; } = new();
     }
 
     public class SystemInfo
     {
-        public string Description { get; init; }
-        public string HostName { get; init; }
-        public string UpTime { get; init; }
-        public string Contact { get; init; }
-        public string Location { get; init; }
+        public string Description { get; set; } = string.Empty;
+        public string HostName { get; set; } = string.Empty;
+        public string UpTime { get; set; } = string.Empty;
+        public string Contact { get; set; } = string.Empty;
+        public string Location { get; set; } = string.Empty;
     }
 
     public class ProtocolStats
     {
-        public List<StatEntry> Ip { get; init; } = new();
-        public List<StatEntry> Tcp { get; init; } = new();
-        public List<StatEntry> Udp { get; init; } = new();
-        public List<StatEntry> Icmp { get; init; } = new();
-        public List<StatEntry> Snmp { get; init; } = new();
+        public List<StatEntry> Ip { get; set; } = new();
+        public List<StatEntry> Tcp { get; set; } = new();
+        public List<StatEntry> Udp { get; set; } = new();
+        public List<StatEntry> Icmp { get; set; } = new();
+        public List<StatEntry> Snmp { get; set; } = new();
     }
 
     class Program
