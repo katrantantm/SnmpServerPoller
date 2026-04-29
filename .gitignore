@@ -1,1 +1,1 @@
-Nothing should be ignored based on the provided file changes, as only a single source code file (`Snmp/SnmpManager.cs`) was modified without any build artifacts, dependencies, or temporary files present in the changes.
+Nothing to output - the modified file 'Snmp/SnmpManager.cs' is a source code file and no build artifacts, dependencies, or temporary files were detected in the changes.

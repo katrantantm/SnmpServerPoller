@@ -24,19 +24,22 @@ namespace SnmpServerPoller.Snmp
                 // Используем UdpTarget с явными настройками таймаута и повторных попыток
                 AgentParameters agentParams = new AgentParameters(SnmpVersion.Ver2, new OctetString(_community));
                 UdpTarget target = new UdpTarget(
-                    new System.Net.IPAddress(System.Net.IPAddress.Parse(_targetIp)),
-                    161,
+                    new System.Net.IPEndPoint(System.Net.IPAddress.Parse(_targetIp), 161),
                     3000,  // Таймаут 3 секунды (как в рабочей старой версии)
                     2      // 2 повторные попытки
                 );
                 
                 Oid[] oids = new[] { new Oid(oid) };
-                Pdu pdu = target.Get(agentParams, oids);
+                Pdu pdu = new Pdu(PduType.Get);
+                foreach (Oid o in oids) pdu.VbList.Add(new Vb(o));
                 
-                if (pdu != null && pdu.VbList.Count > 0)
+                SnmpV2Packet response = (SnmpV2Packet)target.Request(pdu, agentParams);
+                
+                if (response != null && response.Pdu.VbList.Count > 0)
                 {
-                    string value = DecodeRawData(pdu.VbList[0].Value.ToString());
+                    string value = DecodeRawData(response.Pdu.VbList[0].Value.ToString());
                     _logger.Debug("Получено: {0} = {1}", oid, value);
+                    target.Close();
                     return value;
                 }
                 
@@ -114,8 +117,7 @@ namespace SnmpServerPoller.Snmp
                 // Используем UdpTarget с явными настройками таймаута и повторных попыток
                 AgentParameters agentParams = new AgentParameters(SnmpVersion.Ver2, new OctetString(_community));
                 UdpTarget target = new UdpTarget(
-                    new System.Net.IPAddress(System.Net.IPAddress.Parse(_targetIp)),
-                    161,
+                    new System.Net.IPEndPoint(System.Net.IPAddress.Parse(_targetIp), 161),
                     3000,  // Таймаут 3 секунды (как в рабочей старой версии)
                     2      // 2 повторные попытки
                 );
@@ -126,12 +128,15 @@ namespace SnmpServerPoller.Snmp
                 
                 while (!done)
                 {
-                    Pdu pdu = target.GetNext(agentParams, new[] { lastOid });
+                    Pdu pdu = new Pdu(PduType.GetNext);
+                    pdu.VbList.Add(new Vb(lastOid));
                     
-                    if (pdu == null || pdu.VbList.Count == 0)
+                    SnmpV2Packet response = (SnmpV2Packet)target.Request(pdu, agentParams);
+                    
+                    if (response == null || response.Pdu.VbList.Count == 0)
                         break;
                     
-                    Oid responseOid = pdu.VbList[0].Oid;
+                    Oid responseOid = response.Pdu.VbList[0].Oid;
                     
                     // Проверка выхода за пределы таблицы
                     if (!responseOid.ToString().StartsWith(rootOid))
@@ -140,7 +145,7 @@ namespace SnmpServerPoller.Snmp
                     string index = responseOid.ToString().Substring(rootOid.Length);
                     if (index.StartsWith(".")) index = index.Substring(1);
                     
-                    result[index] = DecodeRawData(pdu.VbList[0].Value.ToString());
+                    result[index] = DecodeRawData(response.Pdu.VbList[0].Value.ToString());
                     lastOid = responseOid;
                 }
                 
