@@ -20,14 +20,27 @@ namespace SnmpServerPoller.Snmp
             try
             {
                 _logger.Debug("Запрос OID: {0}", oid);
-                SimpleSnmp snmp = new(_targetIp, _community);
-                Dictionary<Oid, AsnType> result = snmp.Get(SnmpVersion.Ver2, new[] { oid });
-                if (result != null && result.Count > 0)
+                
+                // Используем UdpTarget с явными настройками таймаута и повторных попыток
+                AgentParameters agentParams = new AgentParameters(SnmpVersion.Ver2, new OctetString(_community));
+                UdpTarget target = new UdpTarget(
+                    new System.Net.IPAddress(System.Net.IPAddress.Parse(_targetIp)),
+                    161,
+                    3000,  // Таймаут 3 секунды (как в рабочей старой версии)
+                    2      // 2 повторные попытки
+                );
+                
+                Oid[] oids = new[] { new Oid(oid) };
+                Pdu pdu = target.Get(agentParams, oids);
+                
+                if (pdu != null && pdu.VbList.Count > 0)
                 {
-                    string value = DecodeRawData(result.First().Value.ToString());
+                    string value = DecodeRawData(pdu.VbList[0].Value.ToString());
                     _logger.Debug("Получено: {0} = {1}", oid, value);
                     return value;
                 }
+                
+                target.Close();
             }
             catch (Exception ex)
             {
@@ -97,17 +110,41 @@ namespace SnmpServerPoller.Snmp
             try
             {
                 _logger.Debug("Walk таблицы: {0}", rootOid);
-                SimpleSnmp snmp = new(_targetIp, _community);
-                Dictionary<Oid, AsnType> snmpResult = snmp.Walk(SnmpVersion.Ver2, rootOid);
-                if (snmpResult == null) return result;
-
-                foreach (var kvp in snmpResult)
+                
+                // Используем UdpTarget с явными настройками таймаута и повторных попыток
+                AgentParameters agentParams = new AgentParameters(SnmpVersion.Ver2, new OctetString(_community));
+                UdpTarget target = new UdpTarget(
+                    new System.Net.IPAddress(System.Net.IPAddress.Parse(_targetIp)),
+                    161,
+                    3000,  // Таймаут 3 секунды (как в рабочей старой версии)
+                    2      // 2 повторные попытки
+                );
+                
+                Oid baseOid = new Oid(rootOid);
+                bool done = false;
+                Oid lastOid = baseOid;
+                
+                while (!done)
                 {
-                    string fullOid = kvp.Key.ToString();
-                    string index = fullOid.Substring(rootOid.Length);
+                    Pdu pdu = target.GetNext(agentParams, new[] { lastOid });
+                    
+                    if (pdu == null || pdu.VbList.Count == 0)
+                        break;
+                    
+                    Oid responseOid = pdu.VbList[0].Oid;
+                    
+                    // Проверка выхода за пределы таблицы
+                    if (!responseOid.ToString().StartsWith(rootOid))
+                        break;
+                    
+                    string index = responseOid.ToString().Substring(rootOid.Length);
                     if (index.StartsWith(".")) index = index.Substring(1);
-                    result[index] = DecodeRawData(kvp.Value.ToString());
+                    
+                    result[index] = DecodeRawData(pdu.VbList[0].Value.ToString());
+                    lastOid = responseOid;
                 }
+                
+                target.Close();
 
                 _logger.Debug("Walk {0}: получено {1} записей", rootOid, result.Count);
             }
