@@ -14,26 +14,29 @@ logger.Info("Целевой сервер: {ServerIp}", serverIp);
 
 try
 {
-    await using var snmp = new SnmpManager(serverIp, config.Snmp.Community, logger);
-    
-    string? sysName = await snmp.GetScalarAsync(SnmpOids.SysName);
-    if (string.IsNullOrEmpty(sysName))
-    { 
-        logger.Error("❌ SNMP недоступен на {ServerIp}", serverIp); 
-        return; 
-    }
-
-    logger.Info("✅ Подключено к {SysName}. Чтение данных...", sysName);
-
-    await using var excel = new ExcelReporter(excelFilePath, logger);
-    await CollectAndWriteDataAsync(snmp, excel, logger);
-
-    logger.Info("✅ Обработка завершена успешно");
-    
-    if (!args.Contains("--no-wait"))
+    await using (var snmp = new SnmpManager(serverIp, config.Snmp.Community, logger))
     {
-        Console.WriteLine("Готово. Нажмите Enter для выхода...");
-        Console.ReadKey();
+        string? sysName = await snmp.GetScalarAsync(SnmpOids.SysName);
+        if (string.IsNullOrEmpty(sysName))
+        { 
+            logger.Error("❌ SNMP недоступен на {ServerIp}", serverIp); 
+            return; 
+        }
+
+        logger.Info("✅ Подключено к {SysName}. Чтение данных...", sysName);
+
+        await using (var excel = new ExcelReporter(excelFilePath, logger))
+        {
+            await CollectAndWriteDataAsync(snmp, excel, logger);
+        }
+
+        logger.Info("✅ Обработка завершена успешно");
+        
+        if (!args.Contains("--no-wait"))
+        {
+            Console.WriteLine("Готово. Нажмите Enter для выхода...");
+            Console.ReadKey();
+        }
     }
 }
 catch (Exception ex)

@@ -1,4 +1,5 @@
-﻿using SnmpServerPoller.Logging;
+﻿using SnmpSharpNet;
+using SnmpServerPoller.Logging;
 using SnmpServerPoller.Config;
 using SnmpServerPoller.Models;
 

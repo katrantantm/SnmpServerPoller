@@ -79,4 +79,8 @@ public static class SnmpOids
     public const string IcmpOutMsgs = ".1.3.6.1.2.1.5.14.0";
     public const string IcmpInEchos = ".1.3.6.1.2.1.5.8.0";
     public const string IcmpOutEchos = ".1.3.6.1.2.1.5.21.0";
+    
+    // Limits
+    public const int MaxProcesses = 200;
+    public const int MaxArpEntries = 1000;
 }

@@ -3,15 +3,14 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using SnmpServerPoller.Logging;
 using SnmpServerPoller.Models;
-using Excel = Microsoft.Office.Interop.Excel;
 
 namespace SnmpServerPoller.Reporting
 {
     public class ExcelReporter : IDisposable
     {
-        private Excel.Application _xlApp;
-        private Excel.Workbook _xlWorkbook;
-        private Excel.Worksheet _xlSheet;
+        private Microsoft.Office.Interop.Excel.Application _xlApp;
+        private Microsoft.Office.Interop.Excel.Workbook _xlWorkbook;
+        private Microsoft.Office.Interop.Excel.Worksheet _xlSheet;
         private int _currentRow;
         private bool _disposed;
         private readonly ILogger _logger;
@@ -26,11 +25,11 @@ namespace SnmpServerPoller.Reporting
             try
             {
                 _logger.Info("Инициализация Excel: {0}", filePath);
-                _xlApp = new Excel.Application();
+                _xlApp = new Microsoft.Office.Interop.Excel.Application();
                 _xlWorkbook = _xlApp.Workbooks.Open(filePath);
 
-                try { _xlSheet = (Excel.Worksheet)_xlWorkbook.Sheets["Сервер"]; }
-                catch { _xlSheet = (Excel.Worksheet)_xlWorkbook.Sheets[1]; }
+                try { _xlSheet = (Microsoft.Office.Interop.Excel.Worksheet)_xlWorkbook.Sheets["Сервер"]; }
+                catch { _xlSheet = (Microsoft.Office.Interop.Excel.Worksheet)_xlWorkbook.Sheets[1]; }
 
                 var rangeToClear = _xlSheet.Range[
                     _xlSheet.Cells[5, 1],
@@ -39,7 +38,7 @@ namespace SnmpServerPoller.Reporting
 
                 _currentRow = 1;
                 _xlApp.Visible = true;
-                _xlApp.WindowState = Excel.XlWindowState.xlMaximized;
+                _xlApp.WindowState = Microsoft.Office.Interop.Excel.XlWindowState.xlMaximized;
 
                 _logger.Info("Excel успешно инициализирован");
             }
@@ -55,77 +54,77 @@ namespace SnmpServerPoller.Reporting
 
         public void AddTitle(string title)
         {
-            var range = _xlSheet.Cells[_currentRow, 1];
-            range.Value = title;
-            range.Font.Bold = true;
-            range.Font.Size = 12;
+            var range = (Microsoft.Office.Interop.Excel.Range)_xlSheet.Cells[_currentRow, 1];
+            range.Value2 = title;
+            ((Microsoft.Office.Interop.Excel.Range)range.Font).Bold = true;
+            ((Microsoft.Office.Interop.Excel.Range)range.Font).Size = 12;
             range.Interior.Color = 0xE7E6E6;
             _currentRow++;
         }
 
         public void WriteScalar(string label, string value)
         {
-            _xlSheet.Cells[_currentRow, 1].Value = label;
-            _xlSheet.Cells[_currentRow, 2].Value = value;
+            ((Microsoft.Office.Interop.Excel.Range)_xlSheet.Cells[_currentRow, 1]).Value2 = label;
+            ((Microsoft.Office.Interop.Excel.Range)_xlSheet.Cells[_currentRow, 2]).Value2 = value;
             _currentRow++;
         }
 
         public void AddSpacing() => _currentRow += 2;
 
-        private void StyleTable(Excel.Range fullTableRange, int colsCount, bool hasNumbers = false)
+        private void StyleTable(Microsoft.Office.Interop.Excel.Range fullTableRange, int colsCount, bool hasNumbers = false)
         {
             if (fullTableRange == null) return;
             fullTableRange.Font.Size = 10;
             fullTableRange.Font.Name = "Calibri";
             fullTableRange.Interior.Color = 0xFFFFFF;
-            fullTableRange.VerticalAlignment = Excel.XlVAlign.xlVAlignCenter;
+            fullTableRange.VerticalAlignment = Microsoft.Office.Interop.Excel.XlVAlign.xlVAlignCenter;
 
             var borders = fullTableRange.Borders;
-            borders[Excel.XlBordersIndex.xlEdgeLeft].LineStyle = Excel.XlLineStyle.xlContinuous;
-            borders[Excel.XlBordersIndex.xlEdgeLeft].Weight = Excel.XlBorderWeight.xlMedium;
-            borders[Excel.XlBordersIndex.xlEdgeLeft].Color = COLOR_BORDER;
-            borders[Excel.XlBordersIndex.xlEdgeTop].LineStyle = Excel.XlLineStyle.xlContinuous;
-            borders[Excel.XlBordersIndex.xlEdgeTop].Weight = Excel.XlBorderWeight.xlMedium;
-            borders[Excel.XlBordersIndex.xlEdgeTop].Color = COLOR_BORDER;
-            borders[Excel.XlBordersIndex.xlEdgeBottom].LineStyle = Excel.XlLineStyle.xlContinuous;
-            borders[Excel.XlBordersIndex.xlEdgeBottom].Weight = Excel.XlBorderWeight.xlMedium;
-            borders[Excel.XlBordersIndex.xlEdgeBottom].Color = COLOR_BORDER;
-            borders[Excel.XlBordersIndex.xlEdgeRight].LineStyle = Excel.XlLineStyle.xlContinuous;
-            borders[Excel.XlBordersIndex.xlEdgeRight].Weight = Excel.XlBorderWeight.xlMedium;
-            borders[Excel.XlBordersIndex.xlEdgeRight].Color = COLOR_BORDER;
+            borders[Microsoft.Office.Interop.Excel.XlBordersIndex.xlEdgeLeft].LineStyle = Microsoft.Office.Interop.Excel.XlLineStyle.xlContinuous;
+            borders[Microsoft.Office.Interop.Excel.XlBordersIndex.xlEdgeLeft].Weight = Microsoft.Office.Interop.Excel.XlBorderWeight.xlMedium;
+            borders[Microsoft.Office.Interop.Excel.XlBordersIndex.xlEdgeLeft].Color = COLOR_BORDER;
+            borders[Microsoft.Office.Interop.Excel.XlBordersIndex.xlEdgeTop].LineStyle = Microsoft.Office.Interop.Excel.XlLineStyle.xlContinuous;
+            borders[Microsoft.Office.Interop.Excel.XlBordersIndex.xlEdgeTop].Weight = Microsoft.Office.Interop.Excel.XlBorderWeight.xlMedium;
+            borders[Microsoft.Office.Interop.Excel.XlBordersIndex.xlEdgeTop].Color = COLOR_BORDER;
+            borders[Microsoft.Office.Interop.Excel.XlBordersIndex.xlEdgeBottom].LineStyle = Microsoft.Office.Interop.Excel.XlLineStyle.xlContinuous;
+            borders[Microsoft.Office.Interop.Excel.XlBordersIndex.xlEdgeBottom].Weight = Microsoft.Office.Interop.Excel.XlBorderWeight.xlMedium;
+            borders[Microsoft.Office.Interop.Excel.XlBordersIndex.xlEdgeBottom].Color = COLOR_BORDER;
+            borders[Microsoft.Office.Interop.Excel.XlBordersIndex.xlEdgeRight].LineStyle = Microsoft.Office.Interop.Excel.XlLineStyle.xlContinuous;
+            borders[Microsoft.Office.Interop.Excel.XlBordersIndex.xlEdgeRight].Weight = Microsoft.Office.Interop.Excel.XlBorderWeight.xlMedium;
+            borders[Microsoft.Office.Interop.Excel.XlBordersIndex.xlEdgeRight].Color = COLOR_BORDER;
 
             if (fullTableRange.Rows.Count > 1)
             {
-                borders[Excel.XlBordersIndex.xlInsideHorizontal].LineStyle = Excel.XlLineStyle.xlContinuous;
-                borders[Excel.XlBordersIndex.xlInsideHorizontal].Weight = Excel.XlBorderWeight.xlThin;
-                borders[Excel.XlBordersIndex.xlInsideHorizontal].Color = COLOR_BORDER;
+                borders[Microsoft.Office.Interop.Excel.XlBordersIndex.xlInsideHorizontal].LineStyle = Microsoft.Office.Interop.Excel.XlLineStyle.xlContinuous;
+                borders[Microsoft.Office.Interop.Excel.XlBordersIndex.xlInsideHorizontal].Weight = Microsoft.Office.Interop.Excel.XlBorderWeight.xlThin;
+                borders[Microsoft.Office.Interop.Excel.XlBordersIndex.xlInsideHorizontal].Color = COLOR_BORDER;
             }
             if (fullTableRange.Columns.Count > 1)
             {
-                borders[Excel.XlBordersIndex.xlInsideVertical].LineStyle = Excel.XlLineStyle.xlContinuous;
-                borders[Excel.XlBordersIndex.xlInsideVertical].Weight = Excel.XlBorderWeight.xlThin;
-                borders[Excel.XlBordersIndex.xlInsideVertical].Color = COLOR_BORDER;
+                borders[Microsoft.Office.Interop.Excel.XlBordersIndex.xlInsideVertical].LineStyle = Microsoft.Office.Interop.Excel.XlLineStyle.xlContinuous;
+                borders[Microsoft.Office.Interop.Excel.XlBordersIndex.xlInsideVertical].Weight = Microsoft.Office.Interop.Excel.XlBorderWeight.xlThin;
+                borders[Microsoft.Office.Interop.Excel.XlBordersIndex.xlInsideVertical].Color = COLOR_BORDER;
             }
             if (fullTableRange.Rows.Count >= 1)
             {
-                var headerRange = fullTableRange.Rows[1];
+                var headerRange = (Microsoft.Office.Interop.Excel.Range)fullTableRange.Rows[1];
                 headerRange.Interior.Color = COLOR_HEADER_BG;
-                headerRange.Font.Color = COLOR_HEADER_TEXT;
-                headerRange.Font.Bold = true;
-                headerRange.HorizontalAlignment = Excel.XlHAlign.xlHAlignCenter;
+                ((Microsoft.Office.Interop.Excel.Range)headerRange.Font).Color = COLOR_HEADER_TEXT;
+                ((Microsoft.Office.Interop.Excel.Range)headerRange.Font).Bold = true;
+                headerRange.HorizontalAlignment = Microsoft.Office.Interop.Excel.XlHAlign.xlHAlignCenter;
                 headerRange.WrapText = true;
             }
             if (hasNumbers)
-                fullTableRange.Columns[colsCount].HorizontalAlignment = Excel.XlHAlign.xlHAlignRight;
+                ((Microsoft.Office.Interop.Excel.Range)fullTableRange.Columns[colsCount]).HorizontalAlignment = Microsoft.Office.Interop.Excel.XlHAlign.xlHAlignRight;
         }
 
         private void WriteToRange(object[,] data, int colsCount, bool hasNumbers)
         {
             int rows = data.GetUpperBound(0) + 1;
-            var startCell = _xlSheet.Cells[_currentRow, 1];
-            var endCell = _xlSheet.Cells[_currentRow + rows - 1, colsCount];
+            var startCell = (Microsoft.Office.Interop.Excel.Range)_xlSheet.Cells[_currentRow, 1];
+            var endCell = (Microsoft.Office.Interop.Excel.Range)_xlSheet.Cells[_currentRow + rows - 1, colsCount];
             var range = _xlSheet.Range[startCell, endCell];
-            range.Value = data;
+            range.Value2 = data;
             StyleTable(range, colsCount, hasNumbers);
             _xlSheet.Columns.AutoFit();
             _currentRow += rows + 2;
