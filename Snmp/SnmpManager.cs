@@ -24,7 +24,8 @@ namespace SnmpServerPoller.Snmp
                 // Используем UdpTarget с явными настройками таймаута и повторных попыток
                 AgentParameters agentParams = new AgentParameters(SnmpVersion.Ver2, new OctetString(_community));
                 UdpTarget target = new UdpTarget(
-                    new System.Net.IPEndPoint(System.Net.IPAddress.Parse(_targetIp), 161),
+                    System.Net.IPAddress.Parse(_targetIp),
+                    161,   // Порт
                     3000,  // Таймаут 3 секунды (как в рабочей старой версии)
                     2      // 2 повторные попытки
                 );
@@ -117,7 +118,8 @@ namespace SnmpServerPoller.Snmp
                 // Используем UdpTarget с явными настройками таймаута и повторных попыток
                 AgentParameters agentParams = new AgentParameters(SnmpVersion.Ver2, new OctetString(_community));
                 UdpTarget target = new UdpTarget(
-                    new System.Net.IPEndPoint(System.Net.IPAddress.Parse(_targetIp), 161),
+                    System.Net.IPAddress.Parse(_targetIp),
+                    161,   // Порт
                     3000,  // Таймаут 3 секунды (как в рабочей старой версии)
                     2      // 2 повторные попытки
                 );
