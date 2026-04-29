@@ -1,6 +1,6 @@
 ﻿namespace SnmpServerPoller.Snmp;
 
-public class SnmpManager : IDisposable
+public partial class SnmpManager : IDisposable
 {
     private readonly string _targetIp;
     private readonly string _community;
@@ -11,29 +11,34 @@ public class SnmpManager : IDisposable
     {
         _targetIp = targetIp;
         _community = community;
-        _logger = logger ?? new ConsoleLogger();
+        _logger = logger ?? new ConsoleLogger("Information");
     }
 
     public string? GetScalar(string oid)
     {
         try
         {
-            _logger.Debug("Запрос OID: {0}", oid);
+            _logger.Debug("Запрос OID: {Oid}", oid);
             using var snmp = new SimpleSnmp(_targetIp, _community);
             var result = snmp.Get(SnmpVersion.Ver2, [new Oid(oid)]);
             
             if (result != null && result.Count > 0)
             {
                 string value = DecodeRawData(result.First().Value.ToString());
-                _logger.Debug("Получено: {0} = {1}", oid, value);
+                _logger.Debug("Получено: {Oid} = {Value}", oid, value);
                 return value;
             }
         }
         catch (Exception ex)
         {
-            _logger.Warn("Ошибка при запросе {0}: {1}", oid, ex.Message);
+            _logger.Warn("Ошибка при запросе {Oid}: {Message}", oid, ex.Message);
         }
         return null;
+    }
+
+    public async Task<string?> GetScalarAsync(string oid, CancellationToken cancellationToken = default)
+    {
+        return await Task.Run(() => GetScalar(oid), cancellationToken);
     }
 
     public ulong GetScalarAsLong(string oid)
@@ -57,7 +62,7 @@ public class SnmpManager : IDisposable
         }
         catch (Exception ex)
         {
-            _logger.Debug("Не удалось преобразовать {0} в число: {1}", oid, ex.Message);
+            _logger.Debug("Не удалось преобразовать {Oid} в число: {Count}", oid, ex.Message);
         }
         return 0;
     }
@@ -102,7 +107,7 @@ public class SnmpManager : IDisposable
         var result = new Dictionary<string, string>();
         try
         {
-            _logger.Debug("Walk таблицы: {0}", rootOid);
+            _logger.Debug("Walk таблицы: {Oid}", rootOid);
             using var snmp = new SimpleSnmp(_targetIp, _community);
             var snmpResult = snmp.Walk(SnmpVersion.Ver2, rootOid);
             if (snmpResult == null) return result;
@@ -116,11 +121,11 @@ public class SnmpManager : IDisposable
                 result[index] = DecodeRawData(kvp.Value.ToString());
             }
 
-            _logger.Debug("Walk {0}: получено {1} записей", rootOid, result.Count);
+            _logger.Debug("Walk {Oid}: получено {Count} записей", rootOid, result.Count);
         }
         catch (Exception ex)
         {
-            _logger.Error("Ошибка Walk {0}: {1}", rootOid, ex);
+            _logger.Error("Ошибка Walk {Oid}: {Count}", rootOid, ex);
         }
         return result;
     }
@@ -135,22 +140,22 @@ public class SnmpManager : IDisposable
         _logger.Info("Сбор данных интерфейсов...");
         var interfaces = new Dictionary<int, InterfaceInfo>();
         
-        foreach (var kvp in WalkTable(SnmpConfig.IfDescr))
+        foreach (var kvp in WalkTable(SnmpOids.IfDescr))
         {
             int idx = ParseInt(kvp.Key);
             interfaces[idx] = new InterfaceInfo { Index = idx, Description = kvp.Value };
         }
         
-        MergeTableData(interfaces, WalkTable(SnmpConfig.IfType), (i, v) => i.Type = ParseInt(v));
-        MergeTableData(interfaces, WalkTable(SnmpConfig.IfMtu), (i, v) => i.Mtu = ParseLong(v));
-        MergeTableData(interfaces, WalkTable(SnmpConfig.IfSpeed), (i, v) => i.Speed = ParseULong(v));
-        MergeTableData(interfaces, WalkTable(SnmpConfig.IfAdminStatus), (i, v) => i.AdminStatus = ParseInt(v));
-        MergeTableData(interfaces, WalkTable(SnmpConfig.IfOperStatus), (i, v) => i.OperStatus = ParseInt(v));
-        MergeTableData(interfaces, WalkTable(SnmpConfig.IfInOctets), (i, v) => i.InOctets = ParseULong(v));
-        MergeTableData(interfaces, WalkTable(SnmpConfig.IfOutOctets), (i, v) => i.OutOctets = ParseULong(v));
+        MergeTableData(interfaces, WalkTable(SnmpOids.IfType), (i, v) => i.Type = ParseInt(v));
+        MergeTableData(interfaces, WalkTable(SnmpOids.IfMtu), (i, v) => i.Mtu = ParseLong(v));
+        MergeTableData(interfaces, WalkTable(SnmpOids.IfSpeed), (i, v) => i.Speed = ParseULong(v));
+        MergeTableData(interfaces, WalkTable(SnmpOids.IfAdminStatus), (i, v) => i.AdminStatus = ParseInt(v));
+        MergeTableData(interfaces, WalkTable(SnmpOids.IfOperStatus), (i, v) => i.OperStatus = ParseInt(v));
+        MergeTableData(interfaces, WalkTable(SnmpOids.IfInOctets), (i, v) => i.InOctets = ParseULong(v));
+        MergeTableData(interfaces, WalkTable(SnmpOids.IfOutOctets), (i, v) => i.OutOctets = ParseULong(v));
 
         var list = interfaces.Values.OrderBy(i => i.Index).ToList();
-        _logger.Info("Найдено интерфейсов: {0}", list.Count);
+        _logger.Info("Найдено интерфейсов: {Count}", list.Count);
         return list;
     }
 
@@ -168,9 +173,9 @@ public class SnmpManager : IDisposable
     {
         _logger.Info("Сбор IP-адресов...");
         var list = new List<IpAddressInfo>();
-        var addresses = WalkTable(SnmpConfig.IpAdEntAddr);
-        var masks = WalkTable(SnmpConfig.IpAdEntNetMask);
-        var ifIndexes = WalkTable(SnmpConfig.IpAdEntIfIndex);
+        var addresses = WalkTable(SnmpOids.IpAdEntAddr);
+        var masks = WalkTable(SnmpOids.IpAdEntNetMask);
+        var ifIndexes = WalkTable(SnmpOids.IpAdEntIfIndex);
         
         foreach (var kvp in addresses)
         {
@@ -184,7 +189,7 @@ public class SnmpManager : IDisposable
             list.Add(entry);
         }
         
-        _logger.Info("Найдено IP-адресов: {0}", list.Count);
+        _logger.Info("Найдено IP-адресов: {Count}", list.Count);
         return list;
     }
 
@@ -192,9 +197,9 @@ public class SnmpManager : IDisposable
     {
         _logger.Info("Сбор ARP таблицы...");
         var list = new List<ArpEntry>();
-        var physAddrs = WalkTable(SnmpConfig.IpNetToMediaPhysAddress);
-        var ifIndexes = WalkTable(SnmpConfig.IpNetToMediaIfIndex);
-        var types = WalkTable(SnmpConfig.IpNetToMediaType);
+        var physAddrs = WalkTable(SnmpOids.IpNetToMediaPhysAddress);
+        var ifIndexes = WalkTable(SnmpOids.IpNetToMediaIfIndex);
+        var types = WalkTable(SnmpOids.IpNetToMediaType);
         
         foreach (var kvp in physAddrs)
         {
@@ -213,7 +218,7 @@ public class SnmpManager : IDisposable
             }
         }
         
-        _logger.Info("Найдено ARP записей: {0}", list.Count);
+        _logger.Info("Найдено ARP записей: {Count}", list.Count);
         return list;
     }
 
@@ -221,14 +226,14 @@ public class SnmpManager : IDisposable
     {
         _logger.Info("Сбор таблицы маршрутизации...");
         var list = new List<RouteEntry>();
-        var dests = WalkTable(SnmpConfig.IpRouteDest);
-        var masks = WalkTable(SnmpConfig.IpRouteMask);
-        var nextHops = WalkTable(SnmpConfig.IpRouteNextHop);
-        var ifIndexes = WalkTable(SnmpConfig.IpRouteIfIndex);
-        var types = WalkTable(SnmpConfig.IpRouteType);
-        var protos = WalkTable(SnmpConfig.IpRouteProto);
-        var metrics = WalkTable(SnmpConfig.IpRouteMetric1);
-        var ages = WalkTable(SnmpConfig.IpRouteAge);
+        var dests = WalkTable(SnmpOids.IpRouteDest);
+        var masks = WalkTable(SnmpOids.IpRouteMask);
+        var nextHops = WalkTable(SnmpOids.IpRouteNextHop);
+        var ifIndexes = WalkTable(SnmpOids.IpRouteIfIndex);
+        var types = WalkTable(SnmpOids.IpRouteType);
+        var protos = WalkTable(SnmpOids.IpRouteProto);
+        var metrics = WalkTable(SnmpOids.IpRouteMetric1);
+        var ages = WalkTable(SnmpOids.IpRouteAge);
         
         foreach (var kvp in dests)
         {
@@ -243,7 +248,7 @@ public class SnmpManager : IDisposable
             list.Add(entry);
         }
         
-        _logger.Info("Найдено маршрутов: {0}", list.Count);
+        _logger.Info("Найдено маршрутов: {Count}", list.Count);
         return list;
     }
 
@@ -251,10 +256,10 @@ public class SnmpManager : IDisposable
     {
         _logger.Info("Сбор информации о дисках...");
         var list = new List<DiskInfo>();
-        var descrs = WalkTable(SnmpConfig.HrStorageDescr);
-        var units = WalkTable(SnmpConfig.HrStorageUnits);
-        var sizes = WalkTable(SnmpConfig.HrStorageSize);
-        var used = WalkTable(SnmpConfig.HrStorageUsed);
+        var descrs = WalkTable(SnmpOids.HrStorageDescr);
+        var units = WalkTable(SnmpOids.HrStorageUnits);
+        var sizes = WalkTable(SnmpOids.HrStorageSize);
+        var used = WalkTable(SnmpOids.HrStorageUsed);
         
         foreach (var kvp in descrs)
         {
@@ -276,7 +281,7 @@ public class SnmpManager : IDisposable
             }
         }
         
-        _logger.Info("Найдено дисков: {0}", list.Count);
+        _logger.Info("Найдено дисков: {Count}", list.Count);
         return list;
     }
 
@@ -284,12 +289,12 @@ public class SnmpManager : IDisposable
     {
         _logger.Info("Сбор данных CPU...");
         var list = new List<CpuCore>();
-        var loads = WalkTable(SnmpConfig.HrProcessorLoad);
+        var loads = WalkTable(SnmpOids.HrProcessorLoad);
         int count = 0;
         foreach (var kvp in loads)
             list.Add(new CpuCore { Index = count++, Load = ParseInt(kvp.Value) });
         
-        _logger.Info("Найдено ядер CPU: {0}", list.Count);
+        _logger.Info("Найдено ядер CPU: {Count}", list.Count);
         return list;
     }
 
@@ -297,16 +302,16 @@ public class SnmpManager : IDisposable
     {
         _logger.Info("Сбор списка процессов...");
         var list = new List<ProcessInfo>();
-        var names = WalkTable(SnmpConfig.HrSWRunName);
-        var paths = WalkTable(SnmpConfig.HrSWRunPath);
-        var params_st = WalkTable(SnmpConfig.HrSWRunParams);
-        var types = WalkTable(SnmpConfig.HrSWRunType);
-        var statuses = WalkTable(SnmpConfig.HrSWRunStatus);
+        var names = WalkTable(SnmpOids.HrSWRunName);
+        var paths = WalkTable(SnmpOids.HrSWRunPath);
+        var params_st = WalkTable(SnmpOids.HrSWRunParams);
+        var types = WalkTable(SnmpOids.HrSWRunType);
+        var statuses = WalkTable(SnmpOids.HrSWRunStatus);
         int count = 0;
         
         foreach (var kvp in names)
         {
-            if (count >= SnmpConfig.MaxProcesses) break;
+            if (count >= SnmpOids.MaxProcesses) break;
             var p = new ProcessInfo { Name = kvp.Value };
             if (paths.TryGetValue(kvp.Key, out var path)) p.Path = path;
             if (params_st.TryGetValue(kvp.Key, out var param)) p.Params = param;
@@ -318,7 +323,7 @@ public class SnmpManager : IDisposable
             count++;
         }
         
-        _logger.Info("Найдено процессов: {0}", list.Count);
+        _logger.Info("Найдено процессов: {Oid}", list.Count);
         return list;
     }
 
@@ -326,10 +331,10 @@ public class SnmpManager : IDisposable
     {
         _logger.Info("Сбор информации об устройствах...");
         var list = new List<DeviceInfo>();
-        var types = WalkTable(SnmpConfig.HrDeviceType);
-        var descrs = WalkTable(SnmpConfig.HrDeviceDescr);
-        var statuses = WalkTable(SnmpConfig.HrDeviceStatus);
-        var errors = WalkTable(SnmpConfig.HrDeviceErrors);
+        var types = WalkTable(SnmpOids.HrDeviceType);
+        var descrs = WalkTable(SnmpOids.HrDeviceDescr);
+        var statuses = WalkTable(SnmpOids.HrDeviceStatus);
+        var errors = WalkTable(SnmpOids.HrDeviceErrors);
         
         foreach (var kvp in types)
         {
@@ -345,7 +350,7 @@ public class SnmpManager : IDisposable
             }
         }
         
-        _logger.Info("Найдено устройств: {0}", list.Count);
+        _logger.Info("Найдено устройств: {Oid}", list.Count);
         return list;
     }
 

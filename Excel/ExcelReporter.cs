@@ -22,7 +22,7 @@ namespace SnmpServerPoller.Reporting
 
         public ExcelReporter(string filePath, ILogger logger = null)
         {
-            _logger = logger ?? new ConsoleLogger();
+            _logger = logger ?? new ConsoleLogger("Information");
             try
             {
                 _logger.Info("Инициализация Excel: {0}", filePath);

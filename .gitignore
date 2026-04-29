@@ -1,38 +1,73 @@
-```gitignore
-# Build artifacts
+```
+# Compiled and binary files
 *.exe
 *.dll
-*.pdb
-*.user
-*.suo
-*.slnx
-obj/
-bin/
-Debug/
-Release/
+*.so
+*.o
+*.obj
+*.out
+*.class
+*.pyc
+__pycache__/
 
 # Dependencies
-packages/
-.nuget/
-.nuget/packages/
-
-# Logs and temp files
-*.log
-*.tmp
-
-# Environment
+node_modules/
+venv/
+.venv/
 .env
 .env.local
-*.env.*
+.env.*
+
+# Build artifacts
+dist/
+build/
+target/
+*.tmp
+
+# Logs
+*.log
+
+# Coverage
+coverage/
+htmlcov/
+.coverage
 
 # Editors
-.vs/
 .vscode/
 .idea/
 *.swp
 *.swo
 
-# OS
+# System files
 .DS_Store
 Thumbs.db
+
+# Cache directories
+.mypy_cache/
+.pytest_cache/
+.gradle/
+
+# Archives
+*.zip
+*.gz
+*.tar
+*.tgz
+*.bz2
+*.xz
+*.7z
+*.rar
+*.zst
+*.lz4
+*.lzh
+*.cab
+*.arj
+*.rpm
+*.deb
+*.Z
+*.lz
+*.lzo
+*.tar.gz
+*.tar.bz2
+*.tar.xz
+*.tar.zst
 ```
