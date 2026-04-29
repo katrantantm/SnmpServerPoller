@@ -21,13 +21,16 @@ namespace SnmpServerPoller.Snmp
             {
                 _logger.Debug("Запрос OID: {0}", oid);
                 
-                // Используем UdpTarget с явными настройками таймаута и повторных попыток
+                // Используем UdpTarget с IPEndPoint для лучшей совместимости
                 AgentParameters agentParams = new AgentParameters(SnmpVersion.Ver2, new OctetString(_community));
+                System.Net.IPEndPoint endPoint = new System.Net.IPEndPoint(
+                    System.Net.IPAddress.Parse(_targetIp), 
+                    161
+                );
                 UdpTarget target = new UdpTarget(
-                    System.Net.IPAddress.Parse(_targetIp),
-                    161,   // Порт
-                    10000,  // Таймаут 10 секунд (увеличено для надежности)
-                    5      // 5 повторных попыток (увеличено для надежности)
+                    endPoint,
+                    10000,  // Таймаут 10 секунд
+                    5      // 5 повторных попыток
                 );
                 
                 Oid[] oids = new[] { new Oid(oid) };
@@ -115,13 +118,16 @@ namespace SnmpServerPoller.Snmp
             {
                 _logger.Debug("Walk таблицы: {0}", rootOid);
                 
-                // Используем UdpTarget с явными настройками таймаута и повторных попыток
+                // Используем UdpTarget с IPEndPoint для лучшей совместимости
                 AgentParameters agentParams = new AgentParameters(SnmpVersion.Ver2, new OctetString(_community));
+                System.Net.IPEndPoint endPoint = new System.Net.IPEndPoint(
+                    System.Net.IPAddress.Parse(_targetIp), 
+                    161
+                );
                 UdpTarget target = new UdpTarget(
-                    System.Net.IPAddress.Parse(_targetIp),
-                    161,   // Порт
-                    10000,  // Таймаут 10 секунд (увеличено для надежности)
-                    5      // 5 повторных попыток (увеличено для надежности)
+                    endPoint,
+                    10000,  // Таймаут 10 секунд
+                    5      // 5 повторных попыток
                 );
                 
                 Oid baseOid = new Oid(rootOid);
