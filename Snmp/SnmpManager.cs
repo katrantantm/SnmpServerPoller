@@ -26,8 +26,8 @@ namespace SnmpServerPoller.Snmp
                 UdpTarget target = new UdpTarget(
                     System.Net.IPAddress.Parse(_targetIp),
                     161,   // Порт
-                    3000,  // Таймаут 3 секунды (как в рабочей старой версии)
-                    2      // 2 повторные попытки
+                    10000,  // Таймаут 10 секунд (увеличено для надежности)
+                    5      // 5 повторных попыток (увеличено для надежности)
                 );
                 
                 Oid[] oids = new[] { new Oid(oid) };
@@ -120,8 +120,8 @@ namespace SnmpServerPoller.Snmp
                 UdpTarget target = new UdpTarget(
                     System.Net.IPAddress.Parse(_targetIp),
                     161,   // Порт
-                    3000,  // Таймаут 3 секунды (как в рабочей старой версии)
-                    2      // 2 повторные попытки
+                    10000,  // Таймаут 10 секунд (увеличено для надежности)
+                    5      // 5 повторных попыток (увеличено для надежности)
                 );
                 
                 Oid baseOid = new Oid(rootOid);
