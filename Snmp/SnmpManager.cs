@@ -1,4 +1,8 @@
-﻿namespace SnmpServerPoller.Snmp;
+﻿using SnmpServerPoller.Logging;
+using SnmpServerPoller.Config;
+using SnmpServerPoller.Models;
+
+namespace SnmpServerPoller.Snmp;
 
 public partial class SnmpManager : IDisposable
 {

@@ -1,5 +1,7 @@
 ﻿namespace SnmpServerPoller.Models;
 
+public record StatEntry(string Name, string Value);
+
 public class InterfaceInfo
 {
     public int Index { get; set; }
@@ -71,10 +73,4 @@ public class DeviceInfo
     public string Description { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     public uint Errors { get; set; }
-}
-
-public class StatEntry
-{
-    public string Name { get; set; } = string.Empty;
-    public string Value { get; set; } = string.Empty;
 }
