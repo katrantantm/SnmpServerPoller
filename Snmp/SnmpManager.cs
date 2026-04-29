@@ -21,16 +21,14 @@ namespace SnmpServerPoller.Snmp
             {
                 _logger.Debug("Запрос OID: {0}", oid);
                 
-                // Используем UdpTarget с IPEndPoint для лучшей совместимости
+                // Используем UdpTarget с IPAddress и портом
                 AgentParameters agentParams = new AgentParameters(SnmpVersion.Ver2, new OctetString(_community));
-                System.Net.IPEndPoint endPoint = new System.Net.IPEndPoint(
-                    System.Net.IPAddress.Parse(_targetIp), 
-                    161
-                );
+                System.Net.IPAddress ipAddr = System.Net.IPAddress.Parse(_targetIp);
                 UdpTarget target = new UdpTarget(
-                    endPoint,
+                    ipAddr,
+                    161,    // порт
                     10000,  // Таймаут 10 секунд
-                    5      // 5 повторных попыток
+                    5       // 5 повторных попыток
                 );
                 
                 Oid[] oids = new[] { new Oid(oid) };
@@ -118,16 +116,14 @@ namespace SnmpServerPoller.Snmp
             {
                 _logger.Debug("Walk таблицы: {0}", rootOid);
                 
-                // Используем UdpTarget с IPEndPoint для лучшей совместимости
+                // Используем UdpTarget с IPAddress и портом
                 AgentParameters agentParams = new AgentParameters(SnmpVersion.Ver2, new OctetString(_community));
-                System.Net.IPEndPoint endPoint = new System.Net.IPEndPoint(
-                    System.Net.IPAddress.Parse(_targetIp), 
-                    161
-                );
+                System.Net.IPAddress ipAddr = System.Net.IPAddress.Parse(_targetIp);
                 UdpTarget target = new UdpTarget(
-                    endPoint,
+                    ipAddr,
+                    161,    // порт
                     10000,  // Таймаут 10 секунд
-                    5      // 5 повторных попыток
+                    5       // 5 повторных попыток
                 );
                 
                 Oid baseOid = new Oid(rootOid);
