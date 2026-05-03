@@ -1,20 +1,25 @@
-```
+```gitignore
 # Compiled and build artifacts
-*.obj
 *.exe
 *.dll
-*.so
-*.a
+*.pdb
+*.obj
+*.o
 *.out
+bin/
+obj/
+Debug/
+Release/
 
 # Dependencies
 packages/
-bin/
-obj/
+node_modules/
+vendor/
 
 # Logs and temp files
 *.log
 *.tmp
+*.temp
 
 # Environment
 .env
@@ -22,6 +27,31 @@ obj/
 *.env.*
 
 # Editors
+.vs/
 .vscode/
 .idea/
+*.swp
+*.swo
+
+# Build outputs
+dist/
+build/
+target/
+out/
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Testing
+coverage/
+htmlcov/
+.coverage
+*.coverage
+
+# Cache directories
+__pycache__/
+*.pyc
+*.pyo
+.Python
 ```

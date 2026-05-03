@@ -62,27 +62,27 @@ namespace SnmpServerPoller.Logging
             }
         }
 
-        public void Debug(string message, params object[] args)
+        public void Debug(string message, params object?[] args)
         {
             Write("Debug", message, null, args);
         }
 
-        public void Info(string message, params object[] args)
+        public void Info(string message, params object?[] args)
         {
             Write("Information", message, null, args);
         }
 
-        public void Warn(string message, params object[] args)
+        public void Warn(string message, params object?[] args)
         {
             Write("Warn", message, null, args);
         }
 
-        public void Error(string message, params object[] args)
+        public void Error(string message, params object?[] args)
         {
             Write("Error", message, null, args);
         }
 
-        public void Error(string message, Exception ex, params object[] args)
+        public void Error(string message, Exception ex, params object?[] args)
         {
             Write("Error", message, ex, args);
         }

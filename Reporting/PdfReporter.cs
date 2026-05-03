@@ -12,7 +12,7 @@ namespace SnmpServerPoller.Reporting
         private readonly ILogger _logger;
         private bool _disposed;
 
-        public PdfReporter(string outputPath, ILogger logger = null)
+        public PdfReporter(string outputPath, ILogger? logger = null)
         {
             _outputPath = outputPath;
             _logger = logger ?? new ConsoleLogger();

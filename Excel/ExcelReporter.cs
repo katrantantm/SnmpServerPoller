@@ -20,7 +20,7 @@ namespace SnmpServerPoller.Reporting
         private const int COLOR_HEADER_TEXT = 0xFFFFFF;
         private const int COLOR_BORDER = 0x000000;
 
-        public ExcelReporter(string filePath, ILogger logger = null)
+        public ExcelReporter(string filePath, ILogger? logger = null)
         {
             _logger = logger ?? new ConsoleLogger();
             try
@@ -249,9 +249,9 @@ namespace SnmpServerPoller.Reporting
             try
             {
                 _logger.Debug("Освобождение ресурсов Excel...");
-                if (_xlWorkbook != null) { _xlWorkbook.Close(true); Marshal.ReleaseComObject(_xlWorkbook); _xlWorkbook = null; }
-                if (_xlApp != null) { _xlApp.Quit(); Marshal.ReleaseComObject(_xlApp); _xlApp = null; }
-                if (_xlSheet != null) { Marshal.ReleaseComObject(_xlSheet); _xlSheet = null; }
+                if (_xlWorkbook != null) { _xlWorkbook.Close(true); Marshal.ReleaseComObject(_xlWorkbook); _xlWorkbook = null!; }
+                if (_xlApp != null) { _xlApp.Quit(); Marshal.ReleaseComObject(_xlApp); _xlApp = null!; }
+                if (_xlSheet != null) { Marshal.ReleaseComObject(_xlSheet); _xlSheet = null!; }
                 GC.Collect(); GC.WaitForPendingFinalizers();
                 _logger.Debug("Excel ресурсы освобождены");
             }

@@ -9,7 +9,7 @@ using System.Text;
 
 namespace SnmpServerPoller.Snmp
 {
-    public class SnmpManager(string targetIp, string community, ILogger logger = null)
+    public class SnmpManager(string targetIp, string community, ILogger? logger = null)
     {
         private readonly string _targetIp = targetIp;
         private readonly string _community = community;
@@ -33,7 +33,7 @@ namespace SnmpServerPoller.Snmp
             {
                 _logger.Warn("Ошибка при запросе {0}: {1}", oid, ex.Message);
             }
-            return null;
+            return null!;
         }
 
         public ulong GetScalarAsLong(string oid)

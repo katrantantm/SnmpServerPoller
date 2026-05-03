@@ -6,10 +6,10 @@ namespace SnmpServerPoller.Config
 {
     public class AppConfig
     {
-        public SnmpSettings Snmp { get; set; }
-        public ExcelSettings Excel { get; set; }
-        public LoggingSettings Logging { get; set; }
-        public ExportSettings Export { get; set; }
+        public SnmpSettings? Snmp { get; set; }
+        public ExcelSettings? Excel { get; set; }
+        public LoggingSettings? Logging { get; set; }
+        public ExportSettings? Export { get; set; }
     }
 
     public class SnmpSettings
@@ -24,7 +24,7 @@ namespace SnmpServerPoller.Config
 
     public class ExcelSettings
     {
-        public string TemplatePath { get; set; }
+        public string? TemplatePath { get; set; }
         public bool AutoSave { get; set; } = true;
     }
 
@@ -42,7 +42,7 @@ namespace SnmpServerPoller.Config
 
     public static class ConfigurationLoader
     {
-        private static AppConfig _config;
+        private static AppConfig? _config;
         private static readonly object _lockObj = new();
 
         public static AppConfig Load(string configPath = "appsettings.json")
@@ -61,7 +61,7 @@ namespace SnmpServerPoller.Config
                     else
                     {
                         string json = File.ReadAllText(configPath);
-                        _config = JsonConvert.DeserializeObject<AppConfig>(json);
+                        _config = JsonConvert.DeserializeObject<AppConfig>(json) ?? CreateDefaultConfig();
                         
                         // Создаем директорию для логов если не существует
                         if (!string.IsNullOrEmpty(_config.Logging?.FilePath))
@@ -105,7 +105,7 @@ namespace SnmpServerPoller.Config
         {
             lock (_lockObj)
             {
-                _config = null;
+                _config = null!;
             }
         }
     }
