@@ -165,7 +165,7 @@ namespace SnmpServerPoller.Snmp
                 {
                     try
                     {
-                        byte[] bytes = octetStr.ToBytes();
+                        byte[] bytes = octetStr.Value;
                         if (bytes != null && bytes.Length > 0)
                         {
                             string utf8Str = Encoding.UTF8.GetString(bytes);
@@ -180,7 +180,7 @@ namespace SnmpServerPoller.Snmp
                 // Обработка Counter64 для больших чисел
                 if (asnValue is Counter64 counter64)
                 {
-                    return counter64.ToLong().ToString();
+                    return counter64.Value.ToString();
                 }
             }
             
