@@ -161,14 +161,18 @@ namespace SnmpServerPoller.Snmp
             if (asnValue != null)
             {
                 // Обработка OctetString с UTF-8 кодировкой
-                if (asnValue is OctetString octetStr && octetStr.Value != null)
+                if (asnValue is OctetString octetStr)
                 {
                     try
                     {
-                        string utf8Str = Encoding.UTF8.GetString(octetStr.Value);
-                        // Проверяем, является ли строка читаемой
-                        if (utf8Str.Any(c => c >= 32 && c < 127) || utf8Str.All(c => char.IsLetterOrDigit(c) || char.IsWhiteSpace(c) || char.IsPunctuation(c)))
-                            return utf8Str.Trim();
+                        byte[] bytes = octetStr.ToBytes();
+                        if (bytes != null && bytes.Length > 0)
+                        {
+                            string utf8Str = Encoding.UTF8.GetString(bytes);
+                            // Проверяем, является ли строка читаемой
+                            if (utf8Str.Any(c => c >= 32 && c < 127) || utf8Str.All(c => char.IsLetterOrDigit(c) || char.IsWhiteSpace(c) || char.IsPunctuation(c)))
+                                return utf8Str.Trim();
+                        }
                     }
                     catch { }
                 }
@@ -176,7 +180,7 @@ namespace SnmpServerPoller.Snmp
                 // Обработка Counter64 для больших чисел
                 if (asnValue is Counter64 counter64)
                 {
-                    return counter64.Value.ToString();
+                    return counter64.ToLong().ToString();
                 }
             }
             
