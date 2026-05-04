@@ -4,57 +4,46 @@ __pycache__/
 *.o
 *.obj
 *.dll
-*.exe
 *.so
+*.exe
 *.class
 *.out
 *.a
-*.lib
-obj/
-bin/
-out/
+
+# Dependencies
+.venv/
+venv/
+node_modules/
 dist/
 build/
 target/
-
-# Dependencies
-node_modules/
-venv/
-.venv/
-.env
-.env.local
-.env.*
+.gradle/
+.mypy_cache/
+.pytest_cache/
 
 # Logs and temp files
 *.log
 *.tmp
 *.swp
 *.swo
-*.bak
-*.cache
+
+# Environment
+.env
+.env.local
+*.env.*
 
 # Editors
 .vscode/
 .idea/
-*.swp
-*.swo
+
+# System files
+.DS_Store
+Thumbs.db
 
 # Coverage
 coverage/
 htmlcov/
 .coverage
-
-# OS
-.DS_Store
-Thumbs.db
-
-# MyPy
-.mypy_cache/
-.pytest_cache/
-
-# Gradle
-.gradle/
-.gradle/
 
 # Compressed files
 *.zip

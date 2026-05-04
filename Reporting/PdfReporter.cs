@@ -43,7 +43,7 @@ namespace SnmpServerPoller.Reporting
                 {
                     page.Size(PageSizes.A4.Landscape());
                     page.Margin(20);
-                    page.DefaultTextStyle(x => x.FontSize(9).FontFamily(FontFamily.Arial));
+                    page.DefaultTextStyle(x => x.FontSize(9).FontFamily(Fonts.Arial));
                     
                     page.Header()
                         .Text($"Сетевые интерфейсы\nGenerated: {DateTime.Now:yyyy-MM-dd HH:mm:ss}")
@@ -55,17 +55,17 @@ namespace SnmpServerPoller.Reporting
                         {
                             table.ColumnsDefinition(columns =>
                             {
-                                columns.RelativeColumn(0.5); // Idx
-                                columns.RelativeColumn(2);   // Descr
-                                columns.RelativeColumn(1);   // Type
-                                columns.RelativeColumn(0.8); // MTU
-                                columns.RelativeColumn(1);   // Speed
-                                columns.RelativeColumn(1.2); // In
-                                columns.RelativeColumn(1.2); // Out
-                                columns.RelativeColumn(0.8); // InErr
-                                columns.RelativeColumn(0.8); // OutErr
-                                columns.RelativeColumn(0.7); // Admin
-                                columns.RelativeColumn(0.7); // Oper
+                                columns.RelativeColumn(0.5f); // Idx
+                                columns.RelativeColumn(2f);   // Descr
+                                columns.RelativeColumn(1f);   // Type
+                                columns.RelativeColumn(0.8f); // MTU
+                                columns.RelativeColumn(1f);   // Speed
+                                columns.RelativeColumn(1.2f); // In
+                                columns.RelativeColumn(1.2f); // Out
+                                columns.RelativeColumn(0.8f); // InErr
+                                columns.RelativeColumn(0.8f); // OutErr
+                                columns.RelativeColumn(0.7f); // Admin
+                                columns.RelativeColumn(0.7f); // Oper
                             });
 
                             table.Header(header =>
@@ -93,8 +93,8 @@ namespace SnmpServerPoller.Reporting
                                 table.Cell().Element(CellStyleData).Text(item.Type.ToString());
                                 table.Cell().Element(CellStyleData).Text(item.Mtu.ToString());
                                 table.Cell().Element(CellStyleData).Text(FormatSpeed(item.Speed));
-                                table.Cell().Element(CellStyleData).Text(FormatBytes(item.InOctets));
-                                table.Cell().Element(CellStyleData).Text(FormatBytes(item.OutOctets));
+                                table.Cell().Element(CellStyleData).Text(FormatBytes((long)item.InOctets));
+                                table.Cell().Element(CellStyleData).Text(FormatBytes((long)item.OutOctets));
                                 table.Cell().Element(CellStyleData).Text(item.InErrors.ToString());
                                 table.Cell().Element(CellStyleData).Text(item.OutErrors.ToString());
                                 table.Cell().Element(CellStyleData).Text(item.AdminStatus.ToString());
@@ -194,7 +194,7 @@ namespace SnmpServerPoller.Reporting
                 {
                     page.Size(PageSizes.A4.Landscape());
                     page.Margin(20);
-                    page.DefaultTextStyle(x => x.FontSize(9).FontFamily(FontFamily.Arial));
+                    page.DefaultTextStyle(x => x.FontSize(9).FontFamily(Fonts.Arial));
                     
                     page.Header()
                         .Text($"{title}\nGenerated: {DateTime.Now:yyyy-MM-dd HH:mm:ss}")
@@ -260,8 +260,8 @@ namespace SnmpServerPoller.Reporting
                     item.Type.ToString(),
                     item.Mtu.ToString(),
                     FormatSpeed(item.Speed),
-                    FormatBytes(item.InOctets),
-                    FormatBytes(item.OutOctets),
+                    FormatBytes((long)item.InOctets),
+                    FormatBytes((long)item.OutOctets),
                     item.InErrors.ToString(),
                     item.OutErrors.ToString(),
                     item.AdminStatus.ToString(),
