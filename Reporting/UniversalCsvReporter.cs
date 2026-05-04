@@ -78,12 +78,46 @@ namespace SnmpServerPoller.Reporting
                 for (int i = 0; i < headers.Length; i++)
                 {
                     string fieldName = headers[i];
-                    row[i] = entry.ContainsKey(fieldName) ? EscapeCsv(entry[fieldName]) : "";
+                    string rawValue = entry.ContainsKey(fieldName) ? entry[fieldName] : "";
+                    
+                    // Применяем форматирование из конфигурации
+                    var fieldConfig = tableConfig.Fields.FirstOrDefault(f => f.Name == fieldName);
+                    row[i] = FormatValue(rawValue, fieldConfig);
                 }
                 rows.Add(row);
             }
 
             WriteCsvFile(filePath, headers, rows);
+        }
+
+        /// <summary>
+        /// Форматирование значения согласно конфигурации поля
+        /// </summary>
+        private string FormatValue(string rawValue, FieldConfig? fieldConfig)
+        {
+            if (string.IsNullOrEmpty(rawValue)) return "";
+            
+            if (fieldConfig == null) return EscapeCsv(rawValue);
+            
+            // Применяем маппинг статусов
+            if (fieldConfig.Map != null && fieldConfig.Map.TryGetValue(rawValue, out var mappedValue))
+            {
+                return EscapeCsv(mappedValue);
+            }
+            
+            // Форматируем скорость
+            if (fieldConfig.Format == "speed" && ulong.TryParse(rawValue, out ulong speed))
+            {
+                if (speed >= 1000000000)
+                    return EscapeCsv($"{(speed / 1000000000.0):F1} Gbps");
+                if (speed >= 1000000)
+                    return EscapeCsv($"{(speed / 1000000.0):F1} Mbps");
+                if (speed >= 1000)
+                    return EscapeCsv($"{(speed / 1000.0):F1} Kbps");
+                return EscapeCsv($"{speed} bps");
+            }
+            
+            return EscapeCsv(rawValue);
         }
 
         /// <summary>

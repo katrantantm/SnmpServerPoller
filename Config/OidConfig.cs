@@ -48,6 +48,15 @@ namespace SnmpServerPoller.Config
 
         [JsonProperty("type")]
         public string Type { get; set; } = string.Empty;
+
+        [JsonProperty("encoding", NullValueHandling = NullValueHandling.Ignore)]
+        public string? Encoding { get; set; }
+
+        [JsonProperty("format", NullValueHandling = NullValueHandling.Ignore)]
+        public string? Format { get; set; }
+
+        [JsonProperty("map", NullValueHandling = NullValueHandling.Ignore)]
+        public Dictionary<string, string>? Map { get; set; }
     }
 
     /// <summary>

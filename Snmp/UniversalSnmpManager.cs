@@ -43,7 +43,7 @@ namespace SnmpServerPoller.Snmp
                 
                 if (result != null && result.Count > 0)
                 {
-                    string value = DecodeRawData(result.First().Value.ToString());
+                    string value = DecodeRawData(result.First().Value.ToString(), result.First().Value);
                     _logger.Debug("Получено: {0} = {1}", oid, value);
                     return value;
                 }
@@ -137,7 +137,10 @@ namespace SnmpServerPoller.Snmp
                     string fullOid = kvp.Key.ToString();
                     string index = fullOid.Substring(rootOid.Length);
                     if (index.StartsWith(".")) index = index.Substring(1);
-                    result[index] = DecodeRawData(kvp.Value.ToString());
+                    
+                    // Декодирование с учетом кодировки и формата
+                    string rawValue = kvp.Value.ToString();
+                    result[index] = DecodeRawData(rawValue, kvp.Value);
                 }
             }
             catch (Exception ex)
@@ -145,6 +148,62 @@ namespace SnmpServerPoller.Snmp
                 _logger.Debug("Ошибка Walk {0}: {1}", rootOid, ex.Message);
             }
             return result;
+        }
+
+        /// <summary>
+        /// Декодирование значения с поддержкой различных типов данных
+        /// </summary>
+        private string DecodeRawData(string input, AsnType asnValue = null)
+        {
+            if (string.IsNullOrEmpty(input)) return input;
+            
+            // Проверяем тип ASN.1 для правильного декодирования
+            if (asnValue != null)
+            {
+                // Обработка OctetString с UTF-8 кодировкой
+                if (asnValue is OctetString octetStr && octetStr.Value != null)
+                {
+                    try
+                    {
+                        string utf8Str = Encoding.UTF8.GetString(octetStr.Value);
+                        // Проверяем, является ли строка читаемой
+                        if (utf8Str.Any(c => c >= 32 && c < 127) || utf8Str.All(c => char.IsLetterOrDigit(c) || char.IsWhiteSpace(c) || char.IsPunctuation(c)))
+                            return utf8Str.Trim();
+                    }
+                    catch { }
+                }
+                
+                // Обработка Counter64 для больших чисел
+                if (asnValue is Counter64 counter64)
+                {
+                    return counter64.Value.ToString();
+                }
+            }
+            
+            // Стандартная обработка шестнадцатеричных данных
+            if (input.Contains(".") || input.Contains(":")) return input;
+
+            string clean = input.Replace(" ", "");
+            if (IsHex(clean))
+            {
+                try
+                {
+                    byte[] data = new byte[clean.Length / 2];
+                    for (int i = 0; i < clean.Length; i += 2)
+                        data[i / 2] = Convert.ToByte(clean.Substring(i, 2), 16);
+
+                    if (data.Length == 6)
+                        return string.Join(":", data.Select(b => b.ToString("X2")));
+                    if (data.Length == 4)
+                        return string.Join(".", data);
+
+                    string decoded = Encoding.UTF8.GetString(data);
+                    if (decoded.All(c => c >= 32 || char.IsWhiteSpace(c)))
+                        return decoded.Trim();
+                }
+                catch { }
+            }
+            return input;
         }
 
         /// <summary>
@@ -437,34 +496,6 @@ namespace SnmpServerPoller.Snmp
         }
 
         #region Helper Methods
-
-        private string DecodeRawData(string input)
-        {
-            if (string.IsNullOrEmpty(input)) return input;
-            if (input.Contains(".") || input.Contains(":")) return input;
-            
-            string clean = input.Replace(" ", "");
-            if (IsHex(clean))
-            {
-                try
-                {
-                    byte[] data = new byte[clean.Length / 2];
-                    for (int i = 0; i < clean.Length; i += 2)
-                        data[i / 2] = Convert.ToByte(clean.Substring(i, 2), 16);
-                    
-                    if (data.Length == 6) 
-                        return string.Join(":", data.Select(b => b.ToString("X2")));
-                    if (data.Length == 4) 
-                        return string.Join(".", data);
-                    
-                    string decoded = Encoding.UTF8.GetString(data);
-                    if (decoded.All(c => char.IsControl(c) || c >= 32)) 
-                        return decoded;
-                }
-                catch { }
-            }
-            return input;
-        }
 
         private bool IsHex(string input)
         {
