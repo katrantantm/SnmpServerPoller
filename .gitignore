@@ -1,65 +1,53 @@
-# Compiled and build artifacts
-*.o
-*.obj
-*.exe
+```
+# Build artifacts
+bin/
+obj/
 *.dll
-*.so
-*.a
-*.out
-
-# Dependencies
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
-env/
-venv/
-.venv/
-.ENV
-.ENV.local
-.env
-.env.local
-.env.*
-
-# Build directories
-build/
-dist/
-*.egg-info/
-
-# Logs and temp files
+*.exe
+*.pdb
+*.nupkg
+*.snupkg
+*.userprefs
+*.cache
+*.compiled
 *.log
 *.tmp
-*.swp
-*.swo
 
-# Editors
+# Dependencies
+packages/
+node_modules/
+.nuget/
+.nvs/
+
+# IDE specific
+.vs/
 .vscode/
 .idea/
-*.swp
-*.swo
+*.user
+*.userosscache
+*.suo
+*.csproj.user
 
-# OS generated files
+# OS generated
 .DS_Store
 Thumbs.db
+ehthumbs.db
+Icon?
+desktop.ini
 
-# Coverage reports
+# Environment
+.env
+.env.local
+*.env.*
+
+# Test and coverage
+TestResults/
 coverage/
-htmlcov/
-.coverage
+*.cover
+*.gcda
+*.gcno
 
-# MyPy cache
-.mypy_cache/
-.pytest_cache/
-
-# Gradle
-.gradle/
-build/
-
-# Maven
-target/
-
-# Compressed files
+# Compression
 *.zip
 *.gz
 *.tar
@@ -82,3 +70,4 @@ target/
 *.tar.bz2
 *.tar.xz
 *.tar.zst
+```

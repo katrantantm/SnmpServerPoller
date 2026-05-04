@@ -73,8 +73,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Config\OidConfig.cs" />
     <Compile Include="Config\SnmpConfig.cs" />
-    <Compile Include="Excel\ExcelReporter.cs" />
     <Compile Include="Logging\ConsoleLogger.cs" />
     <Compile Include="Logging\CompositeLogger.cs" />
     <Compile Include="Logging\FileLogger.cs" />
@@ -82,9 +82,10 @@
     <Compile Include="Models\DataModels.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Reporting\CsvReporter.cs" />
-    <Compile Include="Reporting\PdfReporter.cs" />
-    <Compile Include="Snmp\SnmpManager.cs" />
+    <Compile Include="Reporting\UniversalCsvReporter.cs" />
+    <Compile Include="Reporting\UniversalPdfReporter.cs" />
+    <Compile Include="Reporting\UniversalReportGenerator.cs" />
+    <Compile Include="Snmp\UniversalSnmpManager.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
