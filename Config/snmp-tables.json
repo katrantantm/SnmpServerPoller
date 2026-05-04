@@ -302,8 +302,8 @@
       "baseOid": ".1.3.6.1.2.1.4.22.1",
       "fields": [
         { "name": "IfIndex", "oid": ".1.3.6.1.2.1.4.22.1.1", "type": "int" },
-        { "name": "PhysAddress", "oid": ".1.3.6.1.2.1.4.22.1.2", "type": "string" },
-        { "name": "NetAddress", "oid": ".1.3.6.1.2.1.4.22.1.3", "type": "string" },
+        { "name": "PhysAddress", "oid": ".1.3.6.1.2.1.4.22.1.2", "type": "octetstring" },
+        { "name": "NetAddress", "oid": ".1.3.6.1.2.1.4.22.1.3", "type": "index" },
         { "name": "Type", "oid": ".1.3.6.1.2.1.4.22.1.4", "type": "int" }
       ]
     },
@@ -328,7 +328,26 @@
       "baseOid": ".1.3.6.1.2.1.25.2.3.1",
       "fields": [
         { "name": "Index", "oid": ".1.3.6.1.2.1.25.2.3.1.1", "type": "index" },
-        { "name": "Type", "oid": ".1.3.6.1.2.1.25.2.3.1.2", "type": "string" },
+        { 
+          "name": "Type", 
+          "oid": ".1.3.6.1.2.1.25.2.3.1.2", 
+          "type": "string",
+          "map": {
+            ".1.3.6.1.2.1.25.2.1.1": "Other",
+            ".1.3.6.1.2.1.25.2.1.2": "Physical memory",
+            ".1.3.6.1.2.1.25.2.1.3": "Virtual memory",
+            ".1.3.6.1.2.1.25.2.1.4": "File system",
+            ".1.3.6.1.2.1.25.2.1.5": "Disk storage",
+            ".1.3.6.1.2.1.25.2.1.6": "Partition",
+            ".1.3.6.1.2.1.25.2.1.7": "RAM disk",
+            ".1.3.6.1.2.1.25.2.1.8": "Flash memory",
+            ".1.3.6.1.2.1.25.2.1.9": "Network disk",
+            ".1.3.6.1.2.1.25.2.1.10": "Tape",
+            ".1.3.6.1.2.1.25.2.1.11": "Optical disk",
+            ".1.3.6.1.2.1.25.2.1.12": "Memory buffers",
+            ".1.3.6.1.2.1.25.2.1.13": "Cached memory"
+          }
+        },
         { "name": "Descr", "oid": ".1.3.6.1.2.1.25.2.3.1.3", "type": "string" },
         { "name": "Units", "oid": ".1.3.6.1.2.1.25.2.3.1.4", "type": "long" },
         { "name": "Size", "oid": ".1.3.6.1.2.1.25.2.3.1.5", "type": "long" },

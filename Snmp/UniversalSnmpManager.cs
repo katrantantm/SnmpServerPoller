@@ -143,6 +143,13 @@ namespace SnmpServerPoller.Snmp
                     {
                         result[index] = DecodeIndexToIpAddress(index);
                     }
+                    // Для полей типа "octetstring" (например MAC адрес) декодируем как шестнадцатеричную строку
+                    else if (fieldType == "octetstring")
+                    {
+                        string rawValue = kvp.Value.ToString();
+                        string decodedValue = DecodeOctetString(rawValue);
+                        result[index] = decodedValue;
+                    }
                     else
                     {
                         // Декодирование с учетом кодировки и формата
@@ -302,6 +309,34 @@ namespace SnmpServerPoller.Snmp
             }
             
             return value;
+        }
+
+        /// <summary>
+        /// Декодирование OctetString в MAC адрес (формат XX:XX:XX:XX:XX:XX)
+        /// </summary>
+        private string DecodeOctetString(string input)
+        {
+            if (string.IsNullOrEmpty(input)) return input;
+            
+            // Удаляем пробелы и точки
+            string clean = input.Replace(" ", "").Replace(".", "");
+            
+            // Проверяем, является ли строка шестнадцатеричной
+            if (IsHex(clean) && clean.Length % 2 == 0)
+            {
+                try
+                {
+                    byte[] data = new byte[clean.Length / 2];
+                    for (int i = 0; i < clean.Length; i += 2)
+                        data[i / 2] = Convert.ToByte(clean.Substring(i, 2), 16);
+                    
+                    // Форматируем как MAC адрес (XX:XX:XX:XX:XX:XX)
+                    return string.Join(":", data.Select(b => b.ToString("X2")));
+                }
+                catch { }
+            }
+            
+            return input;
         }
 
         /// <summary>
@@ -536,6 +571,8 @@ namespace SnmpServerPoller.Snmp
                 {
                     list.Add(new DiskInfo
                     {
+                        Index = kvp.Value.ContainsKey("Index") ? ParseInt(kvp.Value["Index"]) : 0,
+                        Type = kvp.Value.ContainsKey("Type") ? kvp.Value["Type"] : string.Empty,
                         Description = kvp.Value["Descr"],
                         TotalMB = Math.Round((sizeVal * unitFactor) / 1048576, 0),
                         UsedMB = Math.Round((usedVal * unitFactor) / 1048576, 0),
@@ -583,6 +620,7 @@ namespace SnmpServerPoller.Snmp
                 if (count >= SnmpConfig.MaxProcesses) break;
                 
                 var proc = new ProcessInfo();
+                if (kvp.Value.ContainsKey("Index")) proc.Index = ParseInt(kvp.Value["Index"]);
                 if (kvp.Value.ContainsKey("Name")) proc.Name = kvp.Value["Name"];
                 if (kvp.Value.ContainsKey("Path")) proc.Path = kvp.Value["Path"];
                 if (kvp.Value.ContainsKey("Params")) proc.Params = kvp.Value["Params"];

@@ -44,6 +44,8 @@
 
     public class DiskInfo
     {
+        public int Index { get; set; }
+        public string Type { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public double TotalMB { get; set; }
         public double UsedMB { get; set; }
@@ -58,6 +60,7 @@
 
     public class ProcessInfo
     {
+        public int Index { get; set; }
         public string Name { get; set; } = string.Empty;
         public string Path { get; set; } = string.Empty;
         public string Params { get; set; } = string.Empty;
