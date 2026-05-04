@@ -404,6 +404,38 @@ namespace SnmpServerPoller.Snmp
             return stats;
         }
 
+        /// <summary>
+        /// Получить скалярные значения категории как словарь
+        /// </summary>
+        public Dictionary<string, string> GetScalars(string category)
+        {
+            var result = new Dictionary<string, string>();
+            try
+            {
+                var config = OidConfigLoader.Load();
+                if (config.Scalars.ContainsKey(category))
+                {
+                    foreach (var kvp in config.Scalars[category])
+                    {
+                        result[kvp.Key] = GetScalar(category, kvp.Key);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn("Ошибка при запросе скаляров {0}: {1}", category, ex.Message);
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// Универсальный метод для получения любой таблицы по ключу конфигурации
+        /// </summary>
+        public Dictionary<string, Dictionary<string, string>> GetUniversalTable(string tableKey)
+        {
+            return WalkTable(tableKey);
+        }
+
         #region Helper Methods
 
         private string DecodeRawData(string input)

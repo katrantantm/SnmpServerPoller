@@ -1,8 +1,8 @@
 # C# проект мониторинг ресурсов по SNMP
 
-## Универсальный SNMP Poller с конфигурацией из внешних файлов
+## Универсальный SNMP Poller с конфигурацией из внешних файлов и экспортом в PDF/CSV
 
-Этот проект представляет собой универсальный SNMP poller, который собирает информацию о серверах и сетевых устройствах. Все OID, названия таблиц и их структура хранятся во внешних JSON файлах, что позволяет легко адаптировать код под новые устройства без изменения исходного кода.
+Этот проект представляет собой универсальный SNMP poller, который собирает информацию о серверах и сетевых устройствах. Все OID, названия таблиц и их структура хранятся во внешних JSON файлах, что позволяет легко адаптировать код под новые устройства без изменения исходного кода. Данные могут быть экспортированы в форматы CSV и PDF автоматически на основе конфигурации.
 
 ## Структура проекта
 
@@ -17,6 +17,12 @@
 │   └── UniversalSnmpManager.cs # Универсальный SNMP менеджер (конфигурация из файла)
 ├── Models/
 │   └── DataModels.cs          # Модели данных
+├── Reporting/
+│   ├── CsvReporter.cs         # Специализированный CSV репортер
+│   ├── PdfReporter.cs         # Специализированный PDF репортер
+│   ├── UniversalCsvReporter.cs    # Универсальный CSV генератор на основе конфигурации
+│   ├── UniversalPdfReporter.cs    # Универсальный PDF генератор на основе конфигурации
+│   └── UniversalReportGenerator.cs # Класс для генерации всех отчетов сразу
 ├── Program.cs                 # Точка входа приложения
 └── appsettings.json           # Основной файл конфигурации приложения
 ```
@@ -69,6 +75,65 @@ var devices = snmp.GetDevices();
 // Получение статистики протоколов
 var ipStats = snmp.GetProtocolStats("ipStats", "IpForwarding", "IpInReceives", "IpOutRequests");
 var tcpStats = snmp.GetProtocolStats("tcpStats", "TcpMaxConn", "TcpInSegs", "TcpOutSegs");
+
+// Универсальные методы для работы с любой таблицей из конфигурации
+Dictionary<string, string> systemScalars = snmp.GetScalars("system");
+Dictionary<string, Dictionary<string, string>> anyTable = snmp.GetUniversalTable("interfaces");
+```
+
+## Универсальный экспорт в CSV и PDF
+
+### Использование UniversalReportGenerator
+
+```csharp
+using SnmpServerPoller.Reporting;
+using SnmpServerPoller.Logging;
+
+ILogger logger = new ConsoleLogger();
+var generator = new UniversalReportGenerator(
+    targetIp: "192.168.1.1",
+    community: "public",
+    outputDir: "./reports",
+    logger: logger
+);
+
+// Сгенерировать все отчеты (CSV и PDF) для всех таблиц и скаляров
+generator.GenerateAllReports();
+
+// Или экспортировать выборочно
+generator.ExportTable("interfaces");      // Экспорт таблицы интерфейсов
+generator.ExportScalars("system");        // Экспорт системных скаляров
+generator.ExportAllTables();              // Только таблицы
+generator.ExportAllScalars();             // Только скаляры
+
+generator.Dispose();
+```
+
+### Прямое использование UniversalCsvReporter и UniversalPdfReporter
+
+```csharp
+using SnmpServerPoller.Reporting;
+using SnmpServerPoller.Snmp;
+
+var snmp = new UniversalSnmpManager("192.168.1.1", "public", logger);
+var csvReporter = new UniversalCsvReporter("./output", logger);
+var pdfReporter = new UniversalPdfReporter("./output", logger);
+
+// Получить данные любой таблицы по ключу из конфигурации
+var tableData = snmp.GetUniversalTable("temperature");
+
+// Экспортировать в CSV и PDF автоматически
+csvReporter.ExportTable("temperature", tableData);
+pdfReporter.ExportTable("temperature", tableData);
+
+// Экспорт скалярных значений
+var systemScalars = snmp.GetScalars("system");
+csvReporter.ExportScalars("system", systemScalars);
+pdfReporter.ExportScalars("system", systemScalars);
+
+// Массовый экспорт всех таблиц
+csvReporter.ExportAllTables(key => snmp.GetUniversalTable(key));
+pdfReporter.ExportAllTables(key => snmp.GetUniversalTable(key));
 ```
 
 ## Добавление новых таблиц
@@ -126,3 +191,19 @@ public List<NewTableModel> GetNewTable()
 3. **Читаемость**: Вся структура данных видна в JSON файле
 4. **Тестируемость**: Можно быстро менять конфигурацию для тестов
 5. **Мульти-вендорность**: Разные конфигурации для разных производителей оборудования
+6. **Автоматический экспорт**: Генерация CSV и PDF отчетов без написания дополнительного кода
+7. **Конфигурируемые форматы**: Заголовки и структура выходных файлов определяются из конфигурации
+
+## Примеры выходных файлов
+
+При запуске `UniversalReportGenerator.GenerateAllReports()` будут созданы:
+
+### CSV файлы:
+- `system_scalars.csv` - системная информация
+- `ipStats_scalars.csv`, `tcpStats_scalars.csv` - статистика протоколов
+- `interfaces.csv`, `ipAddresses.csv`, `arpTable.csv`, `routingTable.csv`
+- `storage.csv`, `cpu.csv`, `processes.csv`, `devices.csv`
+- `temperature.csv` - данные датчиков температуры
+
+### PDF файлы:
+- Аналогичный набор файлов в формате PDF с форматированными таблицами

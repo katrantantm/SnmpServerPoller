@@ -1,4 +1,55 @@
-```
-# Configuration files
-Config/snmp-tables.json
+```csharp
+# Compiled files
+*.dll
+*.exe
+*.pdb
+*.so
+*.dylib
+*.o
+*.obj
+*.a
+*.lib
+*.out
+
+# Build outputs
+bin/
+obj/
+out/
+dist/
+build/
+target/
+
+# Dependencies
+node_modules/
+vendor/
+packages/
+
+# IDE files
+.vs/
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+
+# Environment
+.env
+.env.local
+*.env.*
+
+# Coverage
+coverage/
+htmlcov/
+.coverage
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temp files
+*.tmp
+*.temp
 ```
