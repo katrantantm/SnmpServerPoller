@@ -264,7 +264,7 @@ namespace SnmpServerPoller.Snmp
             // Проверяем тип ASN.1 для правильного декодирования
             if (asnValue != null)
             {
-                // Обработка OctetString с UTF-8 кодировкой
+                // Обработка OctetString - может содержать IP адрес в бинарном формате
                 if (asnValue is OctetString octetStr)
                 {
                     try
@@ -274,6 +274,12 @@ namespace SnmpServerPoller.Snmp
                         for (int i = 0; i < octetStr.Length; i++)
                         {
                             bytes[i] = octetStr[i];
+                        }
+                        
+                        // Проверяем, является ли это IP адресом (4 байта)
+                        if (bytes.Length == 4)
+                        {
+                            return $"{bytes[0]}.{bytes[1]}.{bytes[2]}.{bytes[3]}";
                         }
                         
                         if (bytes != null && bytes.Length > 0)
