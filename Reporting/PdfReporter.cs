@@ -117,9 +117,10 @@ namespace SnmpServerPoller.Reporting
                 // Таблица
                 var table = new PdfPTable(headers.Length);
                 table.WidthPercentage = 100;
-                table.SetWidths(new float[headers.Length]);
+                float[] widths = new float[headers.Length];
                 for (int i = 0; i < headers.Length; i++)
-                    table.SetWidths(i, 1f);
+                    widths[i] = 1f;
+                table.SetWidths(widths);
 
                 // Заголовки столбцов
                 var headerFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 10);
