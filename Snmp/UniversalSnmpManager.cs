@@ -122,7 +122,7 @@ namespace SnmpServerPoller.Snmp
         /// <summary>
         /// Walk одного поля таблицы
         /// </summary>
-        private Dictionary<string, string> WalkSingleField(string rootOid)
+        private Dictionary<string, string> WalkSingleField(string rootOid, string? fieldType = null)
         {
             var result = new Dictionary<string, string>();
             try
@@ -138,9 +138,17 @@ namespace SnmpServerPoller.Snmp
                     string index = fullOid.Substring(rootOid.Length);
                     if (index.StartsWith(".")) index = index.Substring(1);
                     
-                    // Декодирование с учетом кодировки и формата
-                    string rawValue = kvp.Value.ToString();
-                    result[index] = DecodeRawData(rawValue, kvp.Value);
+                    // Для полей типа "index" значение берётся из индекса OID
+                    if (fieldType == "index")
+                    {
+                        result[index] = DecodeIndexToIpAddress(index);
+                    }
+                    else
+                    {
+                        // Декодирование с учетом кодировки и формата
+                        string rawValue = kvp.Value.ToString();
+                        result[index] = DecodeRawData(rawValue, kvp.Value);
+                    }
                 }
             }
             catch (Exception ex)
@@ -148,6 +156,41 @@ namespace SnmpServerPoller.Snmp
                 _logger.Debug("Ошибка Walk {0}: {1}", rootOid, ex.Message);
             }
             return result;
+        }
+
+        /// <summary>
+        /// Декодирование индекса OID в IP адрес (формат: "192.168.1.1" или "192.168.1.1.x.y...")
+        /// </summary>
+        private string DecodeIndexToIpAddress(string index)
+        {
+            if (string.IsNullOrEmpty(index)) return index;
+            
+            // Разделяем индекс на части (точки)
+            string[] parts = index.Split('.');
+            
+            // Для IP адреса ожидаем 4 октета
+            if (parts.Length >= 4)
+            {
+                try
+                {
+                    // Берём первые 4 части как октеты IP адреса
+                    byte[] octets = new byte[4];
+                    for (int i = 0; i < 4; i++)
+                    {
+                        if (!byte.TryParse(parts[i], out octets[i]))
+                        {
+                            return index; // Не удалось распарсить, возвращаем как есть
+                        }
+                    }
+                    return $"{octets[0]}.{octets[1]}.{octets[2]}.{octets[3]}";
+                }
+                catch
+                {
+                    return index;
+                }
+            }
+            
+            return index;
         }
 
         /// <summary>

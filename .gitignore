@@ -1,4 +1,1 @@
-```
-# Configuration backup
-Config/snmp-tables.json
-```
+Nothing should be ignored based on the provided file changes. The only modified file is a C# source code file (`Snmp/UniversalSnmpManager.cs`), which should not be added to .gitignore.
