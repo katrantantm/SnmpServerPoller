@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using iTextSharp.text;
-using iTextSharp.text.pdf;
+using System.Linq;
+using QuestPDF.Fluent;
+using QuestPDF.Helpers;
+using QuestPDF.Infrastructure;
 using SnmpServerPoller.Logging;
 using SnmpServerPoller.Models;
 
@@ -23,14 +25,97 @@ namespace SnmpServerPoller.Reporting
             {
                 Directory.CreateDirectory(_outputPath);
             }
+            
+            QuestPDF.Settings.License = LicenseType.Community;
         }
 
         public void WriteInterfaces(List<InterfaceInfo> list)
         {
             if (list == null || list.Count == 0) return;
-            WriteSimpleTable("interfaces.pdf", "Сетевые интерфейсы", 
-                new[] { "Idx", "Descr", "Type", "MTU", "Speed", "In", "Out", "InErr", "OutErr", "Admin", "Oper" },
-                ConvertInterfaces(list));
+            
+            var fileName = "interfaces.pdf";
+            var filePath = Path.Combine(_outputPath, fileName);
+            _logger.Info("Запись PDF: {0}", filePath);
+
+            Document.Create(container =>
+            {
+                container.Page(page =>
+                {
+                    page.Size(PageSizes.A4.Landscape());
+                    page.Margin(20);
+                    page.DefaultTextStyle(x => x.FontSize(9).FontFamily(FontFamily.Arial));
+                    
+                    page.Header()
+                        .Text($"Сетевые интерфейсы\nGenerated: {DateTime.Now:yyyy-MM-dd HH:mm:ss}")
+                        .SemiBold().FontSize(14).AlignCenter();
+                    
+                    page.Content()
+                        .PaddingVertical(10)
+                        .Table(table =>
+                        {
+                            table.ColumnsDefinition(columns =>
+                            {
+                                columns.RelativeColumn(0.5); // Idx
+                                columns.RelativeColumn(2);   // Descr
+                                columns.RelativeColumn(1);   // Type
+                                columns.RelativeColumn(0.8); // MTU
+                                columns.RelativeColumn(1);   // Speed
+                                columns.RelativeColumn(1.2); // In
+                                columns.RelativeColumn(1.2); // Out
+                                columns.RelativeColumn(0.8); // InErr
+                                columns.RelativeColumn(0.8); // OutErr
+                                columns.RelativeColumn(0.7); // Admin
+                                columns.RelativeColumn(0.7); // Oper
+                            });
+
+                            table.Header(header =>
+                            {
+                                header.Cell().Element(CellStyle).Text("Idx");
+                                header.Cell().Element(CellStyle).Text("Descr");
+                                header.Cell().Element(CellStyle).Text("Type");
+                                header.Cell().Element(CellStyle).Text("MTU");
+                                header.Cell().Element(CellStyle).Text("Speed");
+                                header.Cell().Element(CellStyle).Text("In");
+                                header.Cell().Element(CellStyle).Text("Out");
+                                header.Cell().Element(CellStyle).Text("InErr");
+                                header.Cell().Element(CellStyle).Text("OutErr");
+                                header.Cell().Element(CellStyle).Text("Admin");
+                                header.Cell().Element(CellStyle).Text("Oper");
+                                
+                                static IContainer CellStyle(IContainer container) 
+                                    => container.DefaultTextStyle(x => x.SemiBold()).Padding(3).BorderBottom(1).BorderColor(Colors.Black);
+                            });
+
+                            foreach (var item in list)
+                            {
+                                table.Cell().Element(CellStyleData).Text(item.Index.ToString());
+                                table.Cell().Element(CellStyleData).Text(item.Description);
+                                table.Cell().Element(CellStyleData).Text(item.Type.ToString());
+                                table.Cell().Element(CellStyleData).Text(item.Mtu.ToString());
+                                table.Cell().Element(CellStyleData).Text(FormatSpeed(item.Speed));
+                                table.Cell().Element(CellStyleData).Text(FormatBytes(item.InOctets));
+                                table.Cell().Element(CellStyleData).Text(FormatBytes(item.OutOctets));
+                                table.Cell().Element(CellStyleData).Text(item.InErrors.ToString());
+                                table.Cell().Element(CellStyleData).Text(item.OutErrors.ToString());
+                                table.Cell().Element(CellStyleData).Text(item.AdminStatus.ToString());
+                                table.Cell().Element(CellStyleData).Text(item.OperStatus.ToString());
+                                
+                                static IContainer CellStyleData(IContainer container) 
+                                    => container.Padding(3).BorderBottom(1).BorderColor(Colors.Grey.Lighten2);
+                            }
+                        });
+                    
+                    page.Footer()
+                        .AlignCenter()
+                        .Text(x =>
+                        {
+                            x.Span("Страница ");
+                            x.CurrentPageNumber();
+                            x.Span(" из ");
+                            x.TotalPages();
+                        });
+                });
+            }).GeneratePdf(filePath);
         }
 
         public void WriteIpAddresses(List<IpAddressInfo> list)
@@ -103,50 +188,64 @@ namespace SnmpServerPoller.Reporting
             string filePath = Path.Combine(_outputPath, fileName);
             _logger.Info("Запись PDF: {0}", filePath);
 
-            using (var document = new Document(PageSize.A4.Rotate(), 20, 20, 20, 20))
-            using (var writer = PdfWriter.GetInstance(document, new FileStream(filePath, FileMode.Create)))
+            Document.Create(container =>
             {
-                document.Open();
-
-                // Заголовок
-                var titleFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 16);
-                var titlePhrase = new Phrase(title + "\nGenerated: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"), titleFont);
-                document.Add(titlePhrase);
-                document.Add(new Paragraph("\n"));
-
-                // Таблица
-                var table = new PdfPTable(headers.Length);
-                table.WidthPercentage = 100;
-                float[] widths = new float[headers.Length];
-                for (int i = 0; i < headers.Length; i++)
-                    widths[i] = 1f;
-                table.SetWidths(widths);
-
-                // Заголовки столбцов
-                var headerFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 10);
-                foreach (var header in headers)
+                container.Page(page =>
                 {
-                    var cell = new PdfPCell(new Phrase(header, headerFont));
-                    cell.HorizontalAlignment = Element.ALIGN_CENTER;
-                    cell.BackgroundColor = BaseColor.LIGHT_GRAY;
-                    table.AddCell(cell);
-                }
+                    page.Size(PageSizes.A4.Landscape());
+                    page.Margin(20);
+                    page.DefaultTextStyle(x => x.FontSize(9).FontFamily(FontFamily.Arial));
+                    
+                    page.Header()
+                        .Text($"{title}\nGenerated: {DateTime.Now:yyyy-MM-dd HH:mm:ss}")
+                        .SemiBold().FontSize(14).AlignCenter();
+                    
+                    page.Content()
+                        .PaddingVertical(10)
+                        .Table(table =>
+                        {
+                            table.ColumnsDefinition(columns =>
+                            {
+                                foreach (var header in headers)
+                                {
+                                    columns.RelativeColumn();
+                                }
+                            });
 
-                // Данные
-                var normalFont = FontFactory.GetFont(FontFactory.HELVETICA, 9);
-                foreach (var row in rows)
-                {
-                    foreach (var cellText in row)
-                    {
-                        var cell = new PdfPCell(new Phrase(cellText, normalFont));
-                        cell.HorizontalAlignment = Element.ALIGN_CENTER;
-                        table.AddCell(cell);
-                    }
-                }
+                            table.Header(header =>
+                            {
+                                foreach (var headerText in headers)
+                                {
+                                    header.Cell().Element(CellStyle).Text(headerText);
+                                }
+                                
+                                static IContainer CellStyle(IContainer container) 
+                                    => container.DefaultTextStyle(x => x.SemiBold()).Padding(3).BorderBottom(1).BorderColor(Colors.Black);
+                            });
 
-                document.Add(table);
-                document.Close();
-            }
+                            foreach (var row in rows)
+                            {
+                                foreach (var cellText in row)
+                                {
+                                    table.Cell().Element(CellStyleData).Text(cellText);
+                                }
+                                
+                                static IContainer CellStyleData(IContainer container) 
+                                    => container.Padding(3).BorderBottom(1).BorderColor(Colors.Grey.Lighten2);
+                            }
+                        });
+                    
+                    page.Footer()
+                        .AlignCenter()
+                        .Text(x =>
+                        {
+                            x.Span("Страница ");
+                            x.CurrentPageNumber();
+                            x.Span(" из ");
+                            x.TotalPages();
+                        });
+                });
+            }).GeneratePdf(filePath);
         }
 
         private List<string[]> ConvertInterfaces(List<InterfaceInfo> list)
@@ -161,8 +260,8 @@ namespace SnmpServerPoller.Reporting
                     item.Type.ToString(),
                     item.Mtu.ToString(),
                     FormatSpeed(item.Speed),
-                    item.InOctets.ToString(),
-                    item.OutOctets.ToString(),
+                    FormatBytes(item.InOctets),
+                    FormatBytes(item.OutOctets),
                     item.InErrors.ToString(),
                     item.OutErrors.ToString(),
                     item.AdminStatus.ToString(),
@@ -257,6 +356,19 @@ namespace SnmpServerPoller.Reporting
             if (speed >= 1000000000) return (speed / 1000000000.0).ToString("0.0") + " Gbps";
             if (speed >= 1000000) return (speed / 1000000.0).ToString("0.0") + " Mbps";
             return speed + " bps";
+        }
+        
+        private string FormatBytes(long bytes)
+        {
+            string[] sizes = { "B", "KB", "MB", "GB", "TB" };
+            double len = bytes;
+            int order = 0;
+            while (len >= 1024 && order < sizes.Length - 1)
+            {
+                order++;
+                len = len / 1024;
+            }
+            return $"{len:0.##} {sizes[order]}";
         }
 
         public void Dispose()
