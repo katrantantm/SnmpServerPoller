@@ -139,7 +139,7 @@ namespace SnmpServerPoller.Snmp
                     if (index.StartsWith(".")) index = index.Substring(1);
                     
                     // Для полей типа "index" значение берётся из индекса OID
-                    if (fieldType == "index")
+                    if (fieldType?.ToLower() == "index")
                     {
                         // Проверяем, это OID таблицы ARP или маршрутизации (IP адрес) или простой индекс
                         // Для ARP (.1.3.6.1.2.1.4.22.1.3) и Routing (.1.3.6.1.2.1.4.21.1.x) нужен IP
@@ -158,7 +158,7 @@ namespace SnmpServerPoller.Snmp
                         }
                     }
                     // Для полей типа "octetstring" (например MAC адрес) декодируем как шестнадцатеричную строку
-                    else if (fieldType == "octetstring")
+                    else if (fieldType?.ToLower() == "octetstring")
                     {
                         string decodedValue = DecodeOctetStringFromAsnType(kvp.Value);
                         result[index] = decodedValue;
