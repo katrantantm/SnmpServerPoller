@@ -141,7 +141,21 @@ namespace SnmpServerPoller.Snmp
                     // Для полей типа "index" значение берётся из индекса OID
                     if (fieldType == "index")
                     {
-                        result[index] = DecodeIndexToIpAddress(index);
+                        // Проверяем, это OID таблицы ARP или маршрутизации (IP адрес) или простой индекс
+                        // Для ARP (.1.3.6.1.2.1.4.22.1.3) и Routing (.1.3.6.1.2.1.4.21.1.x) нужен IP
+                        bool isIpTable = rootOid.Contains(".1.3.6.1.2.1.4.22.1.3") ||  // arpTable NetAddress
+                                         rootOid.Contains(".1.3.6.1.2.1.4.20.1.") ||   // ipAddresses
+                                         rootOid.Contains(".1.3.6.1.2.1.4.21.1.");      // routingTable
+                        
+                        if (isIpTable)
+                        {
+                            result[index] = DecodeIndexToIpAddress(index);
+                        }
+                        else
+                        {
+                            // Для обычных индексов (процессы, диски, интерфейсы) возвращаем число
+                            result[index] = index.Split('.')[0];
+                        }
                     }
                     // Для полей типа "octetstring" (например MAC адрес) декодируем как шестнадцатеричную строку
                     else if (fieldType == "octetstring")
@@ -354,8 +368,18 @@ namespace SnmpServerPoller.Snmp
                     bytes[i] = asnValue[i];
                 }
                 
-                // Форматируем как MAC адрес (XX:XX:XX:XX:XX:XX)
-                return string.Join(":", bytes.Select(b => b.ToString("X2")));
+                // Если это MAC адрес (6 байтов), форматируем как XX:XX:XX:XX:XX:XX
+                if (bytes.Length == 6)
+                {
+                    return string.Join(":", bytes.Select(b => b.ToString("X2")));
+                }
+                // Для других длин тоже показываем в hex формате
+                else if (bytes.Length > 0)
+                {
+                    return string.Join(":", bytes.Select(b => b.ToString("X2")));
+                }
+                
+                return string.Empty;
             }
             catch
             {
