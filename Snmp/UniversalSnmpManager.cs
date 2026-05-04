@@ -315,7 +315,7 @@ namespace SnmpServerPoller.Snmp
             if (asnValue != null)
             {
                 // Обработка Integer/Integer32 - возвращаем числовое значение
-                if (asnValue is SnmpSharpNet.Integer asnInt)
+                if (asnValue is Integer32 asnInt)
                 {
                     return asnInt.Value.ToString();
                 }
