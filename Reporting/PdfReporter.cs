@@ -119,7 +119,7 @@ namespace SnmpServerPoller.Reporting
                 table.WidthPercentage = 100;
                 table.SetWidths(new float[headers.Length]);
                 for (int i = 0; i < headers.Length; i++)
-                    table.SetWidth(i, 1f);
+                    table.SetWidths(i, 1f);
 
                 // Заголовки столбцов
                 var headerFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 10);
