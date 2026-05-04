@@ -8,12 +8,13 @@ namespace SnmpServerPoller.Reporting
     /// <summary>
     /// Демонстрационный класс для универсального экспорта SNMP данных в CSV и PDF
     /// </summary>
-    public class UniversalReportGenerator
+    public class UniversalReportGenerator : IDisposable
     {
         private readonly UniversalSnmpManager _snmp;
         private readonly UniversalCsvReporter _csvReporter;
         private readonly UniversalPdfReporter _pdfReporter;
         private readonly ILogger _logger;
+        private bool _disposed = false;
 
         public UniversalReportGenerator(string targetIp, string community, string outputDir, ILogger? logger = null)
         {
@@ -131,8 +132,26 @@ namespace SnmpServerPoller.Reporting
 
         public void Dispose()
         {
-            _csvReporter?.Dispose();
-            _pdfReporter?.Dispose();
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposed)
+            {
+                if (disposing)
+                {
+                    _csvReporter?.Dispose();
+                    _pdfReporter?.Dispose();
+                }
+                _disposed = true;
+            }
+        }
+
+        ~UniversalReportGenerator()
+        {
+            Dispose(false);
         }
     }
 }
