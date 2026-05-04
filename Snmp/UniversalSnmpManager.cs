@@ -146,8 +146,7 @@ namespace SnmpServerPoller.Snmp
                     // Для полей типа "octetstring" (например MAC адрес) декодируем как шестнадцатеричную строку
                     else if (fieldType == "octetstring")
                     {
-                        string rawValue = kvp.Value.ToString();
-                        string decodedValue = DecodeOctetString(rawValue);
+                        string decodedValue = DecodeOctetStringFromAsnType(kvp.Value);
                         result[index] = decodedValue;
                     }
                     else
@@ -337,6 +336,32 @@ namespace SnmpServerPoller.Snmp
             }
             
             return input;
+        }
+
+        /// <summary>
+        /// Декодирование OctetString из ASN.1 типа в MAC адрес (формат XX:XX:XX:XX:XX:XX)
+        /// </summary>
+        private string DecodeOctetStringFromAsnType(AsnType asnValue)
+        {
+            if (asnValue == null) return string.Empty;
+            
+            try
+            {
+                // Получаем байты из OctetString
+                byte[] bytes = new byte[asnValue.Length];
+                for (int i = 0; i < asnValue.Length; i++)
+                {
+                    bytes[i] = asnValue[i];
+                }
+                
+                // Форматируем как MAC адрес (XX:XX:XX:XX:XX:XX)
+                return string.Join(":", bytes.Select(b => b.ToString("X2")));
+            }
+            catch
+            {
+                // Если ошибка, пробуем декодировать через ToString()
+                return DecodeOctetString(asnValue.ToString());
+            }
         }
 
         /// <summary>
