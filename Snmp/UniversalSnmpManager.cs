@@ -81,7 +81,7 @@ namespace SnmpServerPoller.Snmp
                 
                 foreach (var field in tableConfig.Fields)
                 {
-                    var walkResult = WalkSingleField(field.Oid);
+                    var walkResult = WalkSingleField(field.Oid, field.Type);
                     fieldData[field.Name] = walkResult;
                 }
                 
@@ -159,35 +159,96 @@ namespace SnmpServerPoller.Snmp
         }
 
         /// <summary>
-        /// Декодирование индекса OID в IP адрес (формат: "192.168.1.1" или "192.168.1.1.x.y...")
+        /// Декодирование индекса OID в IP адрес
+        /// Поддерживает несколько форматов:
+        /// 1. Числовой: "192.168.1.1" или ".192.168.1.1"
+        /// 2. Бинарный: строка где каждый символ = один байт IP
+        /// 3. UTF-8 encoded bytes: когда байты IP были интерпретированы как UTF-8 текст
         /// </summary>
         private string DecodeIndexToIpAddress(string index)
         {
             if (string.IsNullOrEmpty(index)) return index;
             
-            // Разделяем индекс на части (точки)
-            string[] parts = index.Split('.');
+            // Формат 1: Числовой формат с точками (например, "192.168.1.1")
+            if (index.Contains("."))
+            {
+                string[] parts = index.Split('.');
+                
+                // Для IP адреса ожидаем 4 октета
+                if (parts.Length >= 4)
+                {
+                    try
+                    {
+                        byte[] octets = new byte[4];
+                        bool allParsed = true;
+                        for (int i = 0; i < 4; i++)
+                        {
+                            if (!byte.TryParse(parts[i], out octets[i]))
+                            {
+                                allParsed = false;
+                                break;
+                            }
+                        }
+                        if (allParsed)
+                        {
+                            return $"{octets[0]}.{octets[1]}.{octets[2]}.{octets[3]}";
+                        }
+                    }
+                    catch
+                    {
+                        // Ошибка парсинга, пробуем другие форматы
+                    }
+                }
+            }
             
-            // Для IP адреса ожидаем 4 октета
-            if (parts.Length >= 4)
+            // Формат 2: Бинарный формат - каждый символ строки представляет байт IP адреса
+            if (index.Length >= 4)
             {
                 try
                 {
-                    // Берём первые 4 части как октеты IP адреса
                     byte[] octets = new byte[4];
+                    bool allValid = true;
                     for (int i = 0; i < 4; i++)
                     {
-                        if (!byte.TryParse(parts[i], out octets[i]))
+                        int codePoint = index[i];
+                        if (codePoint > 255)
                         {
-                            return index; // Не удалось распарсить, возвращаем как есть
+                            allValid = false;
+                            break;
                         }
+                        octets[i] = (byte)codePoint;
                     }
-                    return $"{octets[0]}.{octets[1]}.{octets[2]}.{octets[3]}";
+                    if (allValid)
+                    {
+                        return $"{octets[0]}.{octets[1]}.{octets[2]}.{octets[3]}";
+                    }
                 }
                 catch
                 {
-                    return index;
+                    // Ошибка, пробуем следующий формат
                 }
+            }
+            
+            // Формат 3: UTF-8 encoded bytes
+            // Когда байты IP адреса были неправильно интерпретированы как UTF-8 текст
+            // и теперь нужно получить оригинальные байты из UTF-8 представления
+            try
+            {
+                byte[] utf8Bytes = System.Text.Encoding.UTF8.GetBytes(index);
+                if (utf8Bytes.Length >= 4)
+                {
+                    // Проверяем, могут ли первые 4 байта быть IP адресом
+                    // (все байты <= 255, что всегда true для byte[])
+                    // Дополнительная проверка: первый байт должен быть в диапазоне IP (1-223 для unicast)
+                    if (utf8Bytes[0] >= 1 && utf8Bytes[0] <= 223)
+                    {
+                        return $"{utf8Bytes[0]}.{utf8Bytes[1]}.{utf8Bytes[2]}.{utf8Bytes[3]}";
+                    }
+                }
+            }
+            catch
+            {
+                // Ошибка, возвращаем как есть
             }
             
             return index;
