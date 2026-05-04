@@ -1,1 +1,21 @@
-Nothing should be ignored based on the provided file changes. The only modified file is a source code file (`Snmp/UniversalSnmpManager.cs`), which should not be added to .gitignore.
+```
+# Dependencies
+packages/
+
+# Compiled and build artifacts
+*.dll
+*.nupkg
+
+# Logs and temp files
+*.log
+*.tmp
+
+# Environment
+.env
+.env.local
+*.env.*
+
+# Editors
+.vscode/
+.idea/
+```
