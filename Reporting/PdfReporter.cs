@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using iTextSharp.text;
+using iTextSharp.text.pdf;
 using SnmpServerPoller.Logging;
 using SnmpServerPoller.Models;
 
@@ -101,29 +103,48 @@ namespace SnmpServerPoller.Reporting
             string filePath = Path.Combine(_outputPath, fileName);
             _logger.Info("Запись PDF: {0}", filePath);
 
-            using (var writer = new StreamWriter(filePath, false))
+            using (var document = new Document(PageSize.A4.Rotate(), 20, 20, 20, 20))
+            using (var writer = PdfWriter.GetInstance(document, new FileStream(filePath, FileMode.Create)))
             {
-                // Простой текстовый формат с расширением .pdf (для просмотра в текстовом редакторе)
-                // В реальном проекте здесь应该 использовать библиотеку вроде iTextSharp или QuestPDF
-                writer.WriteLine("%PDF-1.4");
-                writer.WriteLine("SNMP Server Report - " + title);
-                writer.WriteLine("Generated: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
-                writer.WriteLine(new string('=', 80));
-                writer.WriteLine();
-                
-                // Заголовки
-                writer.WriteLine(string.Join(" | ", headers));
-                writer.WriteLine(new string('-', 80));
-                
+                document.Open();
+
+                // Заголовок
+                var titleFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 16);
+                var titlePhrase = new Phrase(title + "\nGenerated: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"), titleFont);
+                document.Add(titlePhrase);
+                document.Add(new Paragraph("\n"));
+
+                // Таблица
+                var table = new PdfPTable(headers.Length);
+                table.WidthPercentage = 100;
+                table.SetWidths(new float[headers.Length]);
+                for (int i = 0; i < headers.Length; i++)
+                    table.SetWidth(i, 1f);
+
+                // Заголовки столбцов
+                var headerFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 10);
+                foreach (var header in headers)
+                {
+                    var cell = new PdfPCell(new Phrase(header, headerFont));
+                    cell.HorizontalAlignment = Element.ALIGN_CENTER;
+                    cell.BackgroundColor = BaseColor.LIGHT_GRAY;
+                    table.AddCell(cell);
+                }
+
                 // Данные
+                var normalFont = FontFactory.GetFont(FontFactory.HELVETICA, 9);
                 foreach (var row in rows)
                 {
-                    writer.WriteLine(string.Join(" | ", row));
+                    foreach (var cellText in row)
+                    {
+                        var cell = new PdfPCell(new Phrase(cellText, normalFont));
+                        cell.HorizontalAlignment = Element.ALIGN_CENTER;
+                        table.AddCell(cell);
+                    }
                 }
-                
-                writer.WriteLine();
-                writer.WriteLine(new string('=', 80));
-                writer.WriteLine("End of report");
+
+                document.Add(table);
+                document.Close();
             }
         }
 

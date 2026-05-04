@@ -2,10 +2,15 @@
 
 namespace SnmpServerPoller.Logging
 {
-    public class ConsoleLogger(string minLevel = "Information") : ILogger
+    public class ConsoleLogger : ILogger
     {
-        private readonly string _minLevel = minLevel;
-        private readonly object _lockObj = new();
+        private readonly string _minLevel;
+        private readonly object _lockObj = new object();
+
+        public ConsoleLogger(string minLevel = "Information")
+        {
+            _minLevel = minLevel;
+        }
 
         private int GetPriority(string level)
         {
