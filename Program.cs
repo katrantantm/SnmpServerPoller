@@ -22,7 +22,7 @@ namespace SnmpServerPoller
                 new FileLogger(config.Logging?.FilePath ?? "logs/poller.log", config.Logging?.LogLevel ?? "Information")
             );
 
-            string serverIp = args.Length > 0 ? args[0] : "87.242.86.112";
+            string serverIp = args.Length > 0 ? args[0] : config.Snmp?.TargetIp ?? "87.242.86.112";
             string outputPath = config.Export?.OutputPath ?? "output";
             string[] exportFormats = config.Export?.Formats ?? new[] { "csv" };
 

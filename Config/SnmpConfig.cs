@@ -14,6 +14,7 @@ namespace SnmpServerPoller.Config
 
     public class SnmpSettings
     {
+        public string TargetIp { get; set; } = "87.242.86.112";
         public string Community { get; set; } = "public";
         public int Timeout { get; set; } = 5000;
         public int Retries { get; set; } = 3;
@@ -94,7 +95,7 @@ namespace SnmpServerPoller.Config
         {
             return new AppConfig
             {
-                Snmp = new SnmpSettings { Community = "public", Timeout = 5000, Retries = 3 },
+                Snmp = new SnmpSettings { TargetIp = "87.242.86.112", Community = "public", Timeout = 5000, Retries = 3 },
                 Excel = new ExcelSettings { AutoSave = true },
                 Logging = new LoggingSettings { LogLevel = "Information", FilePath = "logs/poller.log" },
                 Export = new ExportSettings { OutputPath = "output", Formats = new[] { "csv" } }
