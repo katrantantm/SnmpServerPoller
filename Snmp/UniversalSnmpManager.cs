@@ -81,7 +81,7 @@ namespace SnmpServerPoller.Snmp
                 
                 foreach (var field in tableConfig.Fields)
                 {
-                    var walkResult = WalkSingleField(field.Oid, field.Type);
+                    var walkResult = WalkSingleField(field.Oid, field.Type, field.Format, field.Map);
                     fieldData[field.Name] = walkResult;
                 }
                 
@@ -122,7 +122,7 @@ namespace SnmpServerPoller.Snmp
         /// <summary>
         /// Walk одного поля таблицы
         /// </summary>
-        private Dictionary<string, string> WalkSingleField(string rootOid, string? fieldType = null)
+        private Dictionary<string, string> WalkSingleField(string rootOid, string? fieldType = null, string? format = null, Dictionary<string, string>? map = null)
         {
             var result = new Dictionary<string, string>();
             try
@@ -147,7 +147,26 @@ namespace SnmpServerPoller.Snmp
                     {
                         // Декодирование с учетом кодировки и формата
                         string rawValue = kvp.Value.ToString();
-                        result[index] = DecodeRawData(rawValue, kvp.Value);
+                        string decodedValue = DecodeRawData(rawValue, kvp.Value);
+                        
+                        // Применяем маппинг если указан (для int типов)
+                        if (map != null && map.TryGetValue(decodedValue, out var mappedValue))
+                        {
+                            decodedValue = mappedValue;
+                        }
+                        // Если маппинг не найден, но тип числовой - пробуем применить как есть
+                        else if (map != null && long.TryParse(decodedValue, out _))
+                        {
+                            // Числовое значение без маппинга оставляем как есть
+                        }
+                        
+                        // Применяем форматирование если указано
+                        if (!string.IsNullOrEmpty(format))
+                        {
+                            decodedValue = ApplyFormat(decodedValue, format);
+                        }
+                        
+                        result[index] = decodedValue;
                     }
                 }
             }
@@ -252,6 +271,37 @@ namespace SnmpServerPoller.Snmp
             }
             
             return index;
+        }
+
+        /// <summary>
+        /// Применение форматирования к значению
+        /// </summary>
+        private string ApplyFormat(string value, string format)
+        {
+            if (string.IsNullOrEmpty(value)) return value;
+            
+            switch (format.ToLower())
+            {
+                case "speed":
+                    // Форматирование скорости: значение в битах/сек -> человекочитаемый формат
+                    if (ulong.TryParse(value, out ulong speed))
+                    {
+                        if (speed == 0)
+                            return "0";
+                        if (speed >= 1_000_000_000_000)
+                            return $"{speed / 1_000_000_000_000.0:F1} Tb/s";
+                        if (speed >= 1_000_000_000)
+                            return $"{speed / 1_000_000_000.0:F1} Gb/s";
+                        if (speed >= 1_000_000)
+                            return $"{speed / 1_000_000.0:F1} Mb/s";
+                        if (speed >= 1_000)
+                            return $"{speed / 1_000.0:F1} Kb/s";
+                        return $"{speed} b/s";
+                    }
+                    break;
+            }
+            
+            return value;
         }
 
         /// <summary>
