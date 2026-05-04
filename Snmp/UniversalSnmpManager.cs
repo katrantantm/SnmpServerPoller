@@ -314,7 +314,31 @@ namespace SnmpServerPoller.Snmp
             // Проверяем тип ASN.1 для правильного декодирования
             if (asnValue != null)
             {
-                // Обработка OctetString - может содержать IP адрес в бинарном формате
+                // Обработка Integer/Integer32 - возвращаем числовое значение
+                if (asnValue is SnmpSharpNet.Integer asnInt)
+                {
+                    return asnInt.Value.ToString();
+                }
+                
+                // Обработка Counter32
+                if (asnValue is Counter32 counter32)
+                {
+                    return counter32.Value.ToString();
+                }
+                
+                // Обработка Counter64 для больших чисел
+                if (asnValue is Counter64 counter64)
+                {
+                    return counter64.Value.ToString();
+                }
+                
+                // Обработка Gauge32
+                if (asnValue is Gauge32 gauge32)
+                {
+                    return gauge32.Value.ToString();
+                }
+                
+                // Обработка OctetString - может содержать IP адрес в бинарном формате или текст
                 if (asnValue is OctetString octetStr)
                 {
                     try
@@ -341,13 +365,6 @@ namespace SnmpServerPoller.Snmp
                         }
                     }
                     catch { }
-                }
-                
-                // Обработка Counter64 для больших чисел
-                if (asnValue is Counter64 counter64)
-                {
-                    // Используем ToString() который уже возвращает числовое значение
-                    return counter64.ToString();
                 }
             }
             
