@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Reflection;
+using System.Text.RegularExpressions;
 
 namespace SnmpServerPoller.Snmp
 {
@@ -341,6 +342,7 @@ namespace SnmpServerPoller.Snmp
                         }
                         octets[i] = (byte)codePoint;
                     }
+                    // Проверка диапазона первого октета для валидного IPv4 (1-223)
                     if (allValid && octets[0] >= 1 && octets[0] <= 223)
                     {
                         return $"{octets[0]}.{octets[1]}.{octets[2]}.{octets[3]}";
@@ -596,6 +598,21 @@ namespace SnmpServerPoller.Snmp
                 if (kvp.Value.ContainsKey("Address")) info.Address = kvp.Value["Address"];
                 if (kvp.Value.ContainsKey("Mask")) info.Mask = kvp.Value["Mask"];
                 if (kvp.Value.ContainsKey("IfIndex")) info.IfIndex = ParseInt(kvp.Value["IfIndex"]);
+                
+                // Валидация IP адреса перед добавлением
+                if (!IsValidIpAddress(info.Address))
+                {
+                    _logger.Warn("Некорректный IP адрес: {0}, запись пропущена", info.Address);
+                    continue;
+                }
+                
+                // Валидация маски подсети
+                if (!IsValidIpAddress(info.Mask))
+                {
+                    _logger.Warn("Некорректная маска подсети: {0} для IP {1}, запись пропущена", info.Mask, info.Address);
+                    continue;
+                }
+                
                 list.Add(info);
             }
             
@@ -619,6 +636,20 @@ namespace SnmpServerPoller.Snmp
                 if (kvp.Value.ContainsKey("PhysAddress")) entry.Mac = kvp.Value["PhysAddress"];
                 if (kvp.Value.ContainsKey("NetAddress")) entry.Ip = kvp.Value["NetAddress"];
                 if (kvp.Value.ContainsKey("Type")) entry.Type = ParseInt(kvp.Value["Type"]);
+                
+                // Валидация IP адреса перед добавлением
+                if (!IsValidIpAddress(entry.Ip))
+                {
+                    _logger.Warn("Некорректный IP адрес в ARP: {0}, запись пропущена", entry.Ip);
+                    continue;
+                }
+                
+                // Валидация MAC адреса
+                if (!IsValidMacAddress(entry.Mac))
+                {
+                    _logger.Warn("Некорректный MAC адрес в ARP: {0} для IP {1}, запись пропущена", entry.Mac, entry.Ip);
+                    continue;
+                }
                 
                 // Фильтруем только динамические записи (type != 2)
                 if (entry.Type != 2) list.Add(entry);
@@ -648,11 +679,77 @@ namespace SnmpServerPoller.Snmp
                 if (kvp.Value.ContainsKey("Proto")) entry.Proto = ParseInt(kvp.Value["Proto"]) == 2 ? "local" : ParseInt(kvp.Value["Proto"]).ToString();
                 if (kvp.Value.ContainsKey("Metric")) entry.Metric = ParseInt(kvp.Value["Metric"]);
                 if (kvp.Value.ContainsKey("Age")) entry.Age = ParseInt(kvp.Value["Age"]);
+                
+                // Валидация IP адреса назначения
+                if (!IsValidIpAddress(entry.Dest))
+                {
+                    _logger.Warn("Некорректный IP адрес назначения: {0}, запись пропущена", entry.Dest);
+                    continue;
+                }
+                
+                // Валидация маски подсети
+                if (!IsValidIpAddress(entry.Mask))
+                {
+                    _logger.Warn("Некорректная маска подсети: {0} для маршрута {1}, запись пропущена", entry.Mask, entry.Dest);
+                    continue;
+                }
+                
+                // Валидация NextHop если указан
+                if (!string.IsNullOrEmpty(entry.NextHop) && !IsValidIpAddress(entry.NextHop))
+                {
+                    _logger.Warn("Некорректный NextHop: {0} для маршрута {1}, запись пропущена", entry.NextHop, entry.Dest);
+                    continue;
+                }
+                
                 list.Add(entry);
             }
             
             _logger.Info("   Найдено маршрутов: {0}", list.Count);
             return list;
+        }
+        
+        /// <summary>
+        /// Проверка корректности IPv4 адреса
+        /// </summary>
+        private static bool IsValidIpAddress(string ip)
+        {
+            if (string.IsNullOrEmpty(ip)) return false;
+
+            string[] parts = ip.Split('.');
+            if (parts.Length != 4) return false;
+
+            foreach (var part in parts)
+            {
+                if (!byte.TryParse(part, out _))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Проверка корректности MAC адреса
+        /// Поддерживаемые форматы: XX-XX-XX-XX-XX-XX, XX:XX:XX:XX:XX:XX, XXXXXXXXXXXX
+        /// </summary>
+        private static bool IsValidMacAddress(string mac)
+        {
+            if (string.IsNullOrEmpty(mac)) return false;
+
+            // Формат с дефисами: XX-XX-XX-XX-XX-XX
+            if (Regex.IsMatch(mac, @"^([0-9A-Fa-f]{2}-){5}[0-9A-Fa-f]{2}$"))
+                return true;
+
+            // Формат с двоеточиями: XX:XX:XX:XX:XX:XX
+            if (Regex.IsMatch(mac, @"^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$"))
+                return true;
+
+            // Формат без разделителей: XXXXXXXXXXXX
+            if (Regex.IsMatch(mac, @"^[0-9A-Fa-f]{12}$"))
+                return true;
+
+            return false;
         }
 
         /// <summary>
