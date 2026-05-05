@@ -262,8 +262,24 @@ namespace SnmpServerPoller.Snmp
                     else if (fieldType == "oid")
                     {
                         string rawValue = kvp.Value.ToString();
-                        // OID уже приходит в правильном формате, просто используем его
-                        result[index] = rawValue;
+                        // Нормализуем OID: удаляем ведущую точку если есть
+                        string oidValue = rawValue.StartsWith(".") ? rawValue.Substring(1) : rawValue;
+                        
+                        // Применяем справочник значений если указан
+                        if (valueMapping != null && valueMapping.TryGetValue(oidValue, out var mappedValue))
+                        {
+                            result[index] = mappedValue;
+                        }
+                        // Применяем встроенный маппинг если указан
+                        else if (map != null && map.TryGetValue(oidValue, out var inlineMappedValue))
+                        {
+                            result[index] = inlineMappedValue;
+                        }
+                        else
+                        {
+                            // OID без маппинга оставляем как есть
+                            result[index] = rawValue;
+                        }
                     }
                     else
                     {
