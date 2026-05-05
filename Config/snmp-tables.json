@@ -303,7 +303,7 @@
       "fields": [
         { "name": "IfIndex", "oid": ".1.3.6.1.2.1.4.22.1.1", "type": "int" },
         { "name": "PhysAddress", "oid": ".1.3.6.1.2.1.4.22.1.2", "type": "string" },
-        { "name": "NetAddress", "oid": ".1.3.6.1.2.1.4.22.1.3", "type": "string" },
+        { "name": "NetAddress", "oid": ".1.3.6.1.2.1.4.22.1.3", "type": "ipaddr" },
         { "name": "Type", "oid": ".1.3.6.1.2.1.4.22.1.4", "type": "int" }
       ]
     },

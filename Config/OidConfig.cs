@@ -148,8 +148,9 @@ namespace SnmpServerPoller.Config
                         BaseOid = ".1.3.6.1.2.1.4.22.1",
                         Fields = new List<FieldConfig>
                         {
-                            new() { Name = "PhysAddress", Oid = ".1.3.6.1.2.1.4.22.1.2", Type = "string" },
                             new() { Name = "IfIndex", Oid = ".1.3.6.1.2.1.4.22.1.1", Type = "int" },
+                            new() { Name = "PhysAddress", Oid = ".1.3.6.1.2.1.4.22.1.2", Type = "string" },
+                            new() { Name = "NetAddress", Oid = ".1.3.6.1.2.1.4.22.1.3", Type = "ipaddr" },
                             new() { Name = "Type", Oid = ".1.3.6.1.2.1.4.22.1.4", Type = "int" }
                         }
                     },

@@ -143,6 +143,30 @@ namespace SnmpServerPoller.Snmp
                     {
                         result[index] = DecodeIndexToIpAddress(index);
                     }
+                    // Для полей типа "ipaddr" декодируем IP адрес из значения
+                    else if (fieldType == "ipaddr")
+                    {
+                        string decodedValue;
+                        
+                        // Пробуем получить байты из OctetString напрямую для IP адреса
+                        if (kvp.Value is OctetString octetStr && octetStr.Length == 4)
+                        {
+                            byte[] bytes = new byte[4];
+                            for (int i = 0; i < 4; i++)
+                            {
+                                bytes[i] = octetStr[i];
+                            }
+                            decodedValue = $"{bytes[0]}.{bytes[1]}.{bytes[2]}.{bytes[3]}";
+                        }
+                        else
+                        {
+                            // Стандартное декодирование
+                            string rawValue = kvp.Value.ToString();
+                            decodedValue = DecodeRawData(rawValue, kvp.Value);
+                        }
+                        
+                        result[index] = decodedValue;
+                    }
                     else
                     {
                         // Декодирование с учетом кодировки и формата
