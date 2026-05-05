@@ -289,9 +289,9 @@
       "description": "IP адреса",
       "baseOid": ".1.3.6.1.2.1.4.20.1",
       "fields": [
-        { "name": "Address", "oid": ".1.3.6.1.2.1.4.20.1.1", "type": "index" },
+        { "name": "Address", "oid": ".1.3.6.1.2.1.4.20.1.1", "type": "ipaddr" },
         { "name": "IfIndex", "oid": ".1.3.6.1.2.1.4.20.1.2", "type": "int" },
-        { "name": "Mask", "oid": ".1.3.6.1.2.1.4.20.1.3", "type": "index" },
+        { "name": "Mask", "oid": ".1.3.6.1.2.1.4.20.1.3", "type": "ipaddr" },
         { "name": "BroadcastAddr", "oid": ".1.3.6.1.2.1.4.20.1.4", "type": "int" },
         { "name": "ReasmMaxSize", "oid": ".1.3.6.1.2.1.4.20.1.5", "type": "int" }
       ]
@@ -303,7 +303,7 @@
       "fields": [
         { "name": "IfIndex", "oid": ".1.3.6.1.2.1.4.22.1.1", "type": "int" },
         { "name": "PhysAddress", "oid": ".1.3.6.1.2.1.4.22.1.2", "type": "macaddress" },
-        { "name": "NetAddress", "oid": ".1.3.6.1.2.1.4.22.1.3", "type": "index" },
+        { "name": "NetAddress", "oid": ".1.3.6.1.2.1.4.22.1.3", "type": "ipaddr" },
         { "name": "Type", "oid": ".1.3.6.1.2.1.4.22.1.4", "type": "int", "map": {"1": "other", "2": "invalid", "3": "dynamic", "4": "static"} }
       ]
     },
@@ -312,14 +312,14 @@
       "description": "Таблица маршрутизации",
       "baseOid": ".1.3.6.1.2.1.4.21.1",
       "fields": [
-        { "name": "Dest", "oid": ".1.3.6.1.2.1.4.21.1.1", "type": "index" },
+        { "name": "Dest", "oid": ".1.3.6.1.2.1.4.21.1.1", "type": "ipaddr" },
         { "name": "IfIndex", "oid": ".1.3.6.1.2.1.4.21.1.2", "type": "int" },
         { "name": "Metric", "oid": ".1.3.6.1.2.1.4.21.1.3", "type": "int" },
-        { "name": "NextHop", "oid": ".1.3.6.1.2.1.4.21.1.7", "type": "index" },
+        { "name": "NextHop", "oid": ".1.3.6.1.2.1.4.21.1.7", "type": "ipaddr" },
         { "name": "Type", "oid": ".1.3.6.1.2.1.4.21.1.8", "type": "int" },
         { "name": "Proto", "oid": ".1.3.6.1.2.1.4.21.1.9", "type": "int" },
         { "name": "Age", "oid": ".1.3.6.1.2.1.4.21.1.10", "type": "int" },
-        { "name": "Mask", "oid": ".1.3.6.1.2.1.4.21.1.11", "type": "index" }
+        { "name": "Mask", "oid": ".1.3.6.1.2.1.4.21.1.11", "type": "ipaddr" }
       ]
     },
     "storage": {
