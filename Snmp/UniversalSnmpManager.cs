@@ -803,6 +803,7 @@ namespace SnmpServerPoller.Snmp
                 {
                     list.Add(new DiskInfo
                     {
+                        Type = kvp.Value.ContainsKey("Type") ? kvp.Value["Type"] : string.Empty,
                         Description = kvp.Value["Descr"],
                         TotalMB = Math.Round((sizeVal * unitFactor) / 1048576, 0),
                         UsedMB = Math.Round((usedVal * unitFactor) / 1048576, 0),
@@ -883,8 +884,8 @@ namespace SnmpServerPoller.Snmp
             foreach (var kvp in tableData)
             {
                 var device = new DeviceInfo();
-                if (kvp.Value.ContainsKey("Type")) device.Type = ParseInt(kvp.Value["Type"]);
-                if (device.Type > 0)
+                if (kvp.Value.ContainsKey("Type")) device.Type = kvp.Value["Type"];
+                if (!string.IsNullOrEmpty(device.Type))
                 {
                     if (kvp.Value.ContainsKey("Descr")) device.Description = kvp.Value["Descr"];
                     if (kvp.Value.ContainsKey("Status"))
