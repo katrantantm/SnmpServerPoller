@@ -167,6 +167,39 @@ namespace SnmpServerPoller.Snmp
                         
                         result[index] = decodedValue;
                     }
+                    // Для полей типа "macaddress" декодируем MAC адрес из OctetString
+                    else if (fieldType == "macaddress")
+                    {
+                        string decodedValue;
+                        
+                        // Получаем байты из OctetString для MAC адреса (6 байт)
+                        if (kvp.Value is OctetString macOctetStr && macOctetStr.Length >= 6)
+                        {
+                            byte[] bytes = new byte[6];
+                            for (int i = 0; i < 6; i++)
+                            {
+                                bytes[i] = macOctetStr[i];
+                            }
+                            decodedValue = $"{bytes[0]:X2}-{bytes[1]:X2}-{bytes[2]:X2}-{bytes[3]:X2}-{bytes[4]:X2}-{bytes[5]:X2}";
+                        }
+                        else
+                        {
+                            // Стандартное декодирование с попыткой извлечь байты
+                            string rawValue = kvp.Value.ToString();
+                            byte[] rawBytes = DecodeRawDataToBytes(rawValue, kvp.Value);
+                            
+                            if (rawBytes != null && rawBytes.Length >= 6)
+                            {
+                                decodedValue = $"{rawBytes[0]:X2}-{rawBytes[1]:X2}-{rawBytes[2]:X2}-{rawBytes[3]:X2}-{rawBytes[4]:X2}-{rawBytes[5]:X2}";
+                            }
+                            else
+                            {
+                                decodedValue = rawValue;
+                            }
+                        }
+                        
+                        result[index] = decodedValue;
+                    }
                     else
                     {
                         // Декодирование с учетом кодировки и формата
@@ -416,6 +449,49 @@ namespace SnmpServerPoller.Snmp
                 catch { }
             }
             return input;
+        }
+
+        /// <summary>
+        /// Декодирование значения в байты с поддержкой различных типов данных
+        /// </summary>
+        private byte[]? DecodeRawDataToBytes(string input, AsnType asnValue = null)
+        {
+            if (asnValue != null)
+            {
+                // Обработка OctetString - получаем байты напрямую
+                if (asnValue is OctetString octetStr)
+                {
+                    try
+                    {
+                        byte[] bytes = new byte[octetStr.Length];
+                        for (int i = 0; i < octetStr.Length; i++)
+                        {
+                            bytes[i] = octetStr[i];
+                        }
+                        return bytes;
+                    }
+                    catch { }
+                }
+            }
+            
+            // Стандартная обработка шестнадцатеричных данных
+            if (string.IsNullOrEmpty(input)) return null;
+            if (input.Contains(".") || input.Contains(":")) return null;
+
+            string clean = input.Replace(" ", "");
+            if (IsHex(clean))
+            {
+                try
+                {
+                    byte[] data = new byte[clean.Length / 2];
+                    for (int i = 0; i < clean.Length; i += 2)
+                        data[i / 2] = Convert.ToByte(clean.Substring(i, 2), 16);
+                    return data;
+                }
+                catch { }
+            }
+            
+            return null;
         }
 
         /// <summary>
