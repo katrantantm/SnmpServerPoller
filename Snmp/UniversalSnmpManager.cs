@@ -262,8 +262,55 @@ namespace SnmpServerPoller.Snmp
                     else if (fieldType == "oid")
                     {
                         string rawValue = kvp.Value.ToString();
-                        // OID уже приходит в правильном формате, просто используем его
-                        result[index] = rawValue;
+                        // Нормализуем OID: удаляем ведущую точку если есть
+                        string oidValue = rawValue.StartsWith(".") ? rawValue.Substring(1) : rawValue;
+                        
+                        _logger.Debug("OID field: raw={0}, normalized={1}, valueMapping={2}", rawValue, oidValue, valueMapping != null ? "yes (" + valueMapping.Count + " entries)" : "no");
+                        
+                        // Применяем справочник значений если указан
+                        if (valueMapping != null && valueMapping.TryGetValue(oidValue, out var mappedValue))
+                        {
+                            _logger.Debug("OID mapped: {0} -> {1}", oidValue, mappedValue);
+                            result[index] = mappedValue;
+                        }
+                        // Пробуем найти с ведущей точкой (некоторые устройства возвращают OID с точкой)
+                        else if (valueMapping != null && !rawValue.StartsWith(".") && valueMapping.TryGetValue("." + oidValue, out var mappedValue2))
+                        {
+                            _logger.Debug("OID mapped (with dot): .{0} -> {1}", oidValue, mappedValue2);
+                            result[index] = mappedValue2;
+                        }
+                        // Пробуем найти без ведущих цифр пути (ищем только окончание OID)
+                        else if (valueMapping != null)
+                        {
+                            // Ищем совпадение по окончанию OID (для случаев когда возвращается полный путь)
+                            foreach (var kvpMap in valueMapping)
+                            {
+                                if (oidValue.EndsWith(kvpMap.Key) || oidValue == kvpMap.Key || "." + oidValue == kvpMap.Key)
+                                {
+                                    _logger.Debug("OID mapped (suffix match): {0} ends with {1} -> {2}", oidValue, kvpMap.Key, kvpMap.Value);
+                                    result[index] = kvpMap.Value;
+                                    break;
+                                }
+                            }
+                            
+                            // Если не нашли в цикле, оставляем как есть
+                            if (!result.ContainsKey(index))
+                            {
+                                _logger.Debug("OID not mapped: {0}", oidValue);
+                                result[index] = rawValue;
+                            }
+                        }
+                        // Применяем встроенный маппинг если указан
+                        else if (map != null && map.TryGetValue(oidValue, out var inlineMappedValue))
+                        {
+                            result[index] = inlineMappedValue;
+                        }
+                        else
+                        {
+                            // OID без маппинга оставляем как есть
+                            _logger.Debug("OID not mapped (no mapping): {0}", oidValue);
+                            result[index] = rawValue;
+                        }
                     }
                     else
                     {
@@ -803,6 +850,7 @@ namespace SnmpServerPoller.Snmp
                 {
                     list.Add(new DiskInfo
                     {
+                        Type = kvp.Value.ContainsKey("Type") ? kvp.Value["Type"] : string.Empty,
                         Description = kvp.Value["Descr"],
                         TotalMB = Math.Round((sizeVal * unitFactor) / 1048576, 0),
                         UsedMB = Math.Round((usedVal * unitFactor) / 1048576, 0),
@@ -883,8 +931,8 @@ namespace SnmpServerPoller.Snmp
             foreach (var kvp in tableData)
             {
                 var device = new DeviceInfo();
-                if (kvp.Value.ContainsKey("Type")) device.Type = ParseInt(kvp.Value["Type"]);
-                if (device.Type > 0)
+                if (kvp.Value.ContainsKey("Type")) device.Type = kvp.Value["Type"];
+                if (!string.IsNullOrEmpty(device.Type))
                 {
                     if (kvp.Value.ContainsKey("Descr")) device.Description = kvp.Value["Descr"];
                     if (kvp.Value.ContainsKey("Status"))
