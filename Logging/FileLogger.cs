@@ -1,15 +1,25 @@
-﻿using System;
+using System;
+using System.IO;
 
 namespace SnmpServerPoller.Logging
 {
-    public class ConsoleLogger : ILogger
+    public class FileLogger : ILogger
     {
         private readonly string _minLevel;
-        private readonly object _lockObj = new object();
+        private readonly string _filePath;
+        private readonly object _lockObj = new();
 
-        public ConsoleLogger(string minLevel = "Information")
+        public FileLogger(string filePath, string minLevel = "Information")
         {
+            _filePath = filePath;
             _minLevel = minLevel;
+
+            // Создаем директорию если не существует
+            string? dir = Path.GetDirectoryName(filePath);
+            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+            {
+                Directory.CreateDirectory(dir);
+            }
         }
 
         private int GetPriority(string level)
@@ -21,12 +31,12 @@ namespace SnmpServerPoller.Logging
             return 1;
         }
 
-        private void Write(string level, string message, Exception ex, params object[] args)
+        private void Write(string level, string message, Exception? ex, params object[] args)
         {
             if (GetPriority(level) < GetPriority(_minLevel)) return;
 
             string formatted = args.Length > 0 ? string.Format(message, args) : message;
-            string timestamp = DateTime.Now.ToString("HH:mm:ss.fff");
+            string timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
             string prefix = "[" + timestamp + "] [" + level + "] ";
             string fullMessage = prefix + formatted;
 
@@ -38,17 +48,17 @@ namespace SnmpServerPoller.Logging
 
             lock (_lockObj)
             {
-                ConsoleColor originalColor = Console.ForegroundColor;
-
-                if (level == "Error")
-                    Console.ForegroundColor = ConsoleColor.Red;
-                else if (level == "Warn")
-                    Console.ForegroundColor = ConsoleColor.Yellow;
-                else if (level == "Debug")
-                    Console.ForegroundColor = ConsoleColor.Gray;
-
-                Console.WriteLine(fullMessage);
-                Console.ForegroundColor = originalColor;
+                try
+                {
+                    using (var writer = new StreamWriter(_filePath, true))
+                    {
+                        writer.WriteLine(fullMessage);
+                    }
+                }
+                catch (Exception writeEx)
+                {
+                    Console.WriteLine($"[FileLogger] Ошибка записи в файл: {writeEx.Message}");
+                }
             }
         }
 
