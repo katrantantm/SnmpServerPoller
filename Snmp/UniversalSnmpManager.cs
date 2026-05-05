@@ -158,6 +158,47 @@ namespace SnmpServerPoller.Snmp
                             }
                             decodedValue = $"{bytes[0]}.{bytes[1]}.{bytes[2]}.{bytes[3]}";
                         }
+                        // Пробуем декодировать IP адрес из индекса OID (альтернативный формат)
+                        else if (index.Contains("."))
+                        {
+                            // IP адрес закодирован в индексе OID (например, .192.168.1.1)
+                            string[] parts = index.Split('.');
+                            if (parts.Length >= 4)
+                            {
+                                try
+                                {
+                                    byte[] octets = new byte[4];
+                                    bool allParsed = true;
+                                    for (int i = 0; i < 4; i++)
+                                    {
+                                        if (!byte.TryParse(parts[i], out octets[i]))
+                                        {
+                                            allParsed = false;
+                                            break;
+                                        }
+                                    }
+                                    if (allParsed)
+                                    {
+                                        decodedValue = $"{octets[0]}.{octets[1]}.{octets[2]}.{octets[3]}";
+                                    }
+                                    else
+                                    {
+                                        string rawValueFallback = kvp.Value.ToString();
+                                        decodedValue = DecodeRawData(rawValueFallback, kvp.Value);
+                                    }
+                                }
+                                catch
+                                {
+                                    string rawValueFallback = kvp.Value.ToString();
+                                    decodedValue = DecodeRawData(rawValueFallback, kvp.Value);
+                                }
+                            }
+                            else
+                            {
+                                string rawValueFallback = kvp.Value.ToString();
+                                decodedValue = DecodeRawData(rawValueFallback, kvp.Value);
+                            }
+                        }
                         else
                         {
                             // Стандартное декодирование
