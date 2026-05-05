@@ -345,20 +345,24 @@ namespace SnmpServerPoller.Config
                 }
 
                 string json = File.ReadAllText(fullPath);
-                dynamic? mappingData = JsonConvert.DeserializeObject(json);
+                var mappingData = JsonConvert.DeserializeObject<dynamic>(json);
                 
                 if (mappingData != null && mappingData.mappings != null)
                 {
-                    var mappings = (IDictionary<string, object>)mappingData.mappings;
-                    if (mappings.TryGetValue(mappingName, out var mappingSection))
+                    var mappings = mappingData.mappings as Newtonsoft.Json.Linq.JObject;
+                    if (mappings != null && mappings.TryGetValue(mappingName, out var mappingSection))
                     {
-                        var sectionObj = (IDictionary<string, object>)mappingSection;
-                        if (sectionObj.TryGetValue("values", out var valuesObj))
+                        var sectionObj = mappingSection as Newtonsoft.Json.Linq.JObject;
+                        if (sectionObj != null && sectionObj.TryGetValue("values", out var valuesToken))
                         {
                             var result = new Dictionary<string, string>();
-                            foreach (var prop in (IDictionary<string, object>)valuesObj)
+                            var valuesObj = valuesToken as Newtonsoft.Json.Linq.JObject;
+                            if (valuesObj != null)
                             {
-                                result[prop.Key] = prop.Value?.ToString() ?? string.Empty;
+                                foreach (var prop in valuesObj.Properties())
+                                {
+                                    result[prop.Name] = prop.Value?.ToString() ?? string.Empty;
+                                }
                             }
                             return result;
                         }
