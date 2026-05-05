@@ -2,79 +2,76 @@
 
 namespace SnmpServerPoller.Logging
 {
+    /// <summary>
+    /// Логгер с выводом в консоль с цветовой дифференциацией уровней
+    /// </summary>
     public class ConsoleLogger : ILogger
     {
         private readonly string _minLevel;
-        private readonly object _lockObj = new object();
+        private readonly object _lockObj = new();
 
         public ConsoleLogger(string minLevel = "Information")
         {
             _minLevel = minLevel;
         }
 
-        private int GetPriority(string level)
+        private static int GetPriority(string level) => level switch
         {
-            if (level == "Debug") return 0;
-            if (level == "Information") return 1;
-            if (level == "Warn") return 2;
-            if (level == "Error") return 3;
-            return 1;
-        }
+            "Debug" => 0,
+            "Information" => 1,
+            "Warn" => 2,
+            "Error" => 3,
+            _ => 1
+        };
 
-        private void Write(string level, string message, Exception ex, params object[] args)
+        private void Write(string level, string message, Exception? ex, params object[] args)
         {
             if (GetPriority(level) < GetPriority(_minLevel)) return;
 
-            string formatted = args.Length > 0 ? string.Format(message, args) : message;
+            string formatted = FormatMessage(message, args);
             string timestamp = DateTime.Now.ToString("HH:mm:ss.fff");
-            string prefix = "[" + timestamp + "] [" + level + "] ";
+            string prefix = $"[{timestamp}] [{level}] ";
             string fullMessage = prefix + formatted;
 
             if (ex != null)
             {
-                fullMessage += "\n" + prefix + "Exception: " + ex.Message;
-                fullMessage += "\n" + prefix + "Stack: " + ex.StackTrace;
+                fullMessage += $"\n{prefix}Exception: {ex.Message}";
+                fullMessage += $"\n{prefix}Stack: {ex.StackTrace}";
             }
 
             lock (_lockObj)
             {
                 ConsoleColor originalColor = Console.ForegroundColor;
-
-                if (level == "Error")
-                    Console.ForegroundColor = ConsoleColor.Red;
-                else if (level == "Warn")
-                    Console.ForegroundColor = ConsoleColor.Yellow;
-                else if (level == "Debug")
-                    Console.ForegroundColor = ConsoleColor.Gray;
-
+                Console.ForegroundColor = GetLogLevelColor(level);
                 Console.WriteLine(fullMessage);
                 Console.ForegroundColor = originalColor;
             }
         }
 
-        public void Debug(string message, params object?[] args)
+        private static ConsoleColor GetLogLevelColor(string level) => level switch
         {
-            Write("Debug", message, null, args);
-        }
+            "Error" => ConsoleColor.Red,
+            "Warn" => ConsoleColor.Yellow,
+            "Debug" => ConsoleColor.Gray,
+            _ => Console.ForegroundColor
+        };
 
-        public void Info(string message, params object?[] args)
-        {
-            Write("Information", message, null, args);
-        }
+        private static string FormatMessage(string message, object[] args) => 
+            args.Length > 0 ? string.Format(message, args) : message;
 
-        public void Warn(string message, params object?[] args)
-        {
-            Write("Warn", message, null, args);
-        }
+        public void Debug(string message, params object?[] args) => 
+            Write("Debug", message, null, args ?? Array.Empty<object>());
 
-        public void Error(string message, params object?[] args)
-        {
-            Write("Error", message, null, args);
-        }
+        public void Info(string message, params object?[] args) => 
+            Write("Information", message, null, args ?? Array.Empty<object>());
 
-        public void Error(string message, Exception ex, params object?[] args)
-        {
-            Write("Error", message, ex, args);
-        }
+        public void Warn(string message, params object?[] args) => 
+            Write("Warn", message, null, args ?? Array.Empty<object>());
+
+        public void Error(string message, params object?[] args) => 
+            Write("Error", message, null, args ?? Array.Empty<object>());
+
+        public void Error(string message, Exception ex, params object?[] args) => 
+            Write("Error", message, ex, args ?? Array.Empty<object>());
     }
 }

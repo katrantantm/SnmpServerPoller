@@ -2,6 +2,9 @@ using System;
 
 namespace SnmpServerPoller.Logging
 {
+    /// <summary>
+    /// Композитный логгер, делегирующий вызовы нескольким дочерним логгерам
+    /// </summary>
     public class CompositeLogger : ILogger
     {
         private readonly ILogger[] _loggers;
@@ -11,48 +14,33 @@ namespace SnmpServerPoller.Logging
             _loggers = loggers ?? Array.Empty<ILogger>();
         }
 
-        public void Debug(string message, params object[] args)
-        {
-            foreach (var logger in _loggers)
-            {
-                try { logger.Debug(message, args); }
-                catch { /* Игнорируем ошибки отдельных логгеров */ }
-            }
-        }
+        public void Debug(string message, params object[] args) => 
+            ExecuteOnAll(logger => logger.Debug(message, args));
 
-        public void Info(string message, params object[] args)
-        {
-            foreach (var logger in _loggers)
-            {
-                try { logger.Info(message, args); }
-                catch { /* Игнорируем ошибки отдельных логгеров */ }
-            }
-        }
+        public void Info(string message, params object[] args) => 
+            ExecuteOnAll(logger => logger.Info(message, args));
 
-        public void Warn(string message, params object[] args)
-        {
-            foreach (var logger in _loggers)
-            {
-                try { logger.Warn(message, args); }
-                catch { /* Игнорируем ошибки отдельных логгеров */ }
-            }
-        }
+        public void Warn(string message, params object[] args) => 
+            ExecuteOnAll(logger => logger.Warn(message, args));
 
-        public void Error(string message, params object[] args)
-        {
-            foreach (var logger in _loggers)
-            {
-                try { logger.Error(message, args); }
-                catch { /* Игнорируем ошибки отдельных логгеров */ }
-            }
-        }
+        public void Error(string message, params object[] args) => 
+            ExecuteOnAll(logger => logger.Error(message, args));
 
-        public void Error(string message, Exception ex, params object[] args)
+        public void Error(string message, Exception ex, params object[] args) => 
+            ExecuteOnAll(logger => logger.Error(message, ex, args));
+
+        private void ExecuteOnAll(Action<ILogger> action)
         {
             foreach (var logger in _loggers)
             {
-                try { logger.Error(message, ex, args); }
-                catch { /* Игнорируем ошибки отдельных логгеров */ }
+                try
+                {
+                    action(logger);
+                }
+                catch
+                {
+                    // Игнорируем ошибки отдельных логгеров
+                }
             }
         }
     }
