@@ -342,8 +342,9 @@ namespace SnmpServerPoller.Snmp
                         }
                         octets[i] = (byte)codePoint;
                     }
-                    // Проверка диапазона первого октета для валидного IPv4 (1-223)
-                    if (allValid && octets[0] >= 1 && octets[0] <= 223)
+                    // Для IP адресов и масок принимаем любой диапазон (0-255 для первого октета)
+                    // Маски могут быть 0.0.0.0, сети могут начинаться с 0 (по умолчанию)
+                    if (allValid)
                     {
                         return $"{octets[0]}.{octets[1]}.{octets[2]}.{octets[3]}";
                     }
@@ -359,8 +360,9 @@ namespace SnmpServerPoller.Snmp
             try
             {
                 byte[] utf8Bytes = System.Text.Encoding.UTF8.GetBytes(index);
-                if (utf8Bytes.Length >= 4 && utf8Bytes[0] >= 1 && utf8Bytes[0] <= 223)
+                if (utf8Bytes.Length >= 4)
                 {
+                    // Принимаем любой диапазон для первого октета (0-255)
                     return $"{utf8Bytes[0]}.{utf8Bytes[1]}.{utf8Bytes[2]}.{utf8Bytes[3]}";
                 }
             }
