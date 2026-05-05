@@ -3,6 +3,9 @@ using System.IO;
 
 namespace SnmpServerPoller.Logging
 {
+    /// <summary>
+    /// Логгер с записью в файл
+    /// </summary>
     public class FileLogger : ILogger
     {
         private readonly string _minLevel;
@@ -14,7 +17,11 @@ namespace SnmpServerPoller.Logging
             _filePath = filePath;
             _minLevel = minLevel;
 
-            // Создаем директорию если не существует
+            EnsureDirectoryExists(filePath);
+        }
+
+        private static void EnsureDirectoryExists(string filePath)
+        {
             string? dir = Path.GetDirectoryName(filePath);
             if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
             {
@@ -22,38 +29,35 @@ namespace SnmpServerPoller.Logging
             }
         }
 
-        private int GetPriority(string level)
+        private static int GetPriority(string level) => level switch
         {
-            if (level == "Debug") return 0;
-            if (level == "Information") return 1;
-            if (level == "Warn") return 2;
-            if (level == "Error") return 3;
-            return 1;
-        }
+            "Debug" => 0,
+            "Information" => 1,
+            "Warn" => 2,
+            "Error" => 3,
+            _ => 1
+        };
 
         private void Write(string level, string message, Exception? ex, params object[] args)
         {
             if (GetPriority(level) < GetPriority(_minLevel)) return;
 
-            string formatted = args.Length > 0 ? string.Format(message, args) : message;
+            string formatted = FormatMessage(message, args);
             string timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
-            string prefix = "[" + timestamp + "] [" + level + "] ";
+            string prefix = $"[{timestamp}] [{level}] ";
             string fullMessage = prefix + formatted;
 
             if (ex != null)
             {
-                fullMessage += "\n" + prefix + "Exception: " + ex.Message;
-                fullMessage += "\n" + prefix + "Stack: " + ex.StackTrace;
+                fullMessage += $"\n{prefix}Exception: {ex.Message}";
+                fullMessage += $"\n{prefix}Stack: {ex.StackTrace}";
             }
 
             lock (_lockObj)
             {
                 try
                 {
-                    using (var writer = new StreamWriter(_filePath, true))
-                    {
-                        writer.WriteLine(fullMessage);
-                    }
+                    File.AppendAllText(_filePath, fullMessage + Environment.NewLine);
                 }
                 catch (Exception writeEx)
                 {
@@ -62,29 +66,22 @@ namespace SnmpServerPoller.Logging
             }
         }
 
-        public void Debug(string message, params object?[] args)
-        {
-            Write("Debug", message, null, args);
-        }
+        private static string FormatMessage(string message, object[] args) => 
+            args.Length > 0 ? string.Format(message, args) : message;
 
-        public void Info(string message, params object?[] args)
-        {
-            Write("Information", message, null, args);
-        }
+        public void Debug(string message, params object?[] args) => 
+            Write("Debug", message, null, args ?? Array.Empty<object>());
 
-        public void Warn(string message, params object?[] args)
-        {
-            Write("Warn", message, null, args);
-        }
+        public void Info(string message, params object?[] args) => 
+            Write("Information", message, null, args ?? Array.Empty<object>());
 
-        public void Error(string message, params object?[] args)
-        {
-            Write("Error", message, null, args);
-        }
+        public void Warn(string message, params object?[] args) => 
+            Write("Warn", message, null, args ?? Array.Empty<object>());
 
-        public void Error(string message, Exception ex, params object?[] args)
-        {
-            Write("Error", message, ex, args);
-        }
+        public void Error(string message, params object?[] args) => 
+            Write("Error", message, null, args ?? Array.Empty<object>());
+
+        public void Error(string message, Exception ex, params object?[] args) => 
+            Write("Error", message, ex, args ?? Array.Empty<object>());
     }
 }

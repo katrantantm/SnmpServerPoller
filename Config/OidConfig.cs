@@ -33,6 +33,12 @@ namespace SnmpServerPoller.Config
 
         [JsonProperty("fields")]
         public List<FieldConfig> Fields { get; set; } = new();
+
+        [JsonProperty("typeMappingFile", NullValueHandling = NullValueHandling.Ignore)]
+        public string? TypeMappingFile { get; set; }
+
+        [JsonProperty("valueMapping", NullValueHandling = NullValueHandling.Ignore)]
+        public string? ValueMapping { get; set; }
     }
 
     /// <summary>
@@ -57,6 +63,9 @@ namespace SnmpServerPoller.Config
 
         [JsonProperty("map", NullValueHandling = NullValueHandling.Ignore)]
         public Dictionary<string, string>? Map { get; set; }
+
+        [JsonProperty("valueMapping", NullValueHandling = NullValueHandling.Ignore)]
+        public string? ValueMapping { get; set; }
     }
 
     /// <summary>
@@ -149,7 +158,7 @@ namespace SnmpServerPoller.Config
                         Fields = new List<FieldConfig>
                         {
                             new() { Name = "IfIndex", Oid = ".1.3.6.1.2.1.4.22.1.1", Type = "int" },
-                            new() { Name = "PhysAddress", Oid = ".1.3.6.1.2.1.4.22.1.2", Type = "string" },
+                            new() { Name = "PhysAddress", Oid = ".1.3.6.1.2.1.4.22.1.2", Type = "macaddress" },
                             new() { Name = "NetAddress", Oid = ".1.3.6.1.2.1.4.22.1.3", Type = "ipaddr" },
                             new() { Name = "Type", Oid = ".1.3.6.1.2.1.4.22.1.4", Type = "int" }
                         }
@@ -300,6 +309,72 @@ namespace SnmpServerPoller.Config
                 return config.Tables[tableKey];
             }
             throw new KeyNotFoundException($"Конфигурация таблицы '{tableKey}' не найдена");
+        }
+
+        /// <summary>
+        /// Загрузить файл маппинга типов для таблицы (устаревший метод, используется LoadValueMapping)
+        /// </summary>
+        [Obsolete("Используйте LoadValueMapping")]
+        public static Dictionary<string, string>? LoadTypeMapping(string? mappingFileName, string? baseDir = null)
+        {
+            return LoadValueMapping(mappingFileName, baseDir);
+        }
+
+        /// <summary>
+        /// Загрузить справочник значений из файла oid-mappings.json по имени секции
+        /// </summary>
+        public static Dictionary<string, string>? LoadValueMapping(string? mappingName, string? baseDir = null)
+        {
+            if (string.IsNullOrEmpty(mappingName))
+                return null;
+
+            try
+            {
+                string configDir = baseDir ?? AppDomain.CurrentDomain.BaseDirectory;
+                string fullPath = Path.Combine(configDir, "Config", "oid-mappings.json");
+                
+                if (!File.Exists(fullPath))
+                {
+                    fullPath = Path.Combine(configDir, "oid-mappings.json");
+                }
+                
+                if (!File.Exists(fullPath))
+                {
+                    Console.WriteLine($"⚠️ Файл справочника значений 'oid-mappings.json' не найден.");
+                    return null;
+                }
+
+                string json = File.ReadAllText(fullPath);
+                var mappingData = JsonConvert.DeserializeObject<dynamic>(json);
+                
+                if (mappingData != null && mappingData.mappings != null)
+                {
+                    var mappings = mappingData.mappings as Newtonsoft.Json.Linq.JObject;
+                    if (mappings != null && mappings.TryGetValue(mappingName, out var mappingSection))
+                    {
+                        var sectionObj = mappingSection as Newtonsoft.Json.Linq.JObject;
+                        if (sectionObj != null && sectionObj.TryGetValue("values", out var valuesToken))
+                        {
+                            var result = new Dictionary<string, string>();
+                            var valuesObj = valuesToken as Newtonsoft.Json.Linq.JObject;
+                            if (valuesObj != null)
+                            {
+                                foreach (var prop in valuesObj.Properties())
+                                {
+                                    result[prop.Name] = prop.Value?.ToString() ?? string.Empty;
+                                }
+                            }
+                            return result;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Ошибка загрузки справочника '{mappingName}': {ex.Message}");
+            }
+
+            return null;
         }
     }
 }

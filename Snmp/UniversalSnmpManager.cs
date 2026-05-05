@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Reflection;
+using System.Text.RegularExpressions;
 
 namespace SnmpServerPoller.Snmp
 {
@@ -79,9 +80,23 @@ namespace SnmpServerPoller.Snmp
                 // Собираем данные для каждого поля
                 var fieldData = new Dictionary<string, Dictionary<string, string>>();
                 
+                // Загружаем общий справочник значений для таблицы если указан
+                Dictionary<string, string>? tableValueMap = null;
+                if (!string.IsNullOrEmpty(tableConfig.ValueMapping))
+                {
+                    tableValueMap = OidConfigLoader.LoadValueMapping(tableConfig.ValueMapping);
+                }
+                
                 foreach (var field in tableConfig.Fields)
                 {
-                    var walkResult = WalkSingleField(field.Oid, field.Type, field.Format, field.Map);
+                    // Загружаем индивидуальный справочник для поля если указан (переопределяет таблицу)
+                    Dictionary<string, string>? fieldValueMap = null;
+                    if (!string.IsNullOrEmpty(field.ValueMapping))
+                    {
+                        fieldValueMap = OidConfigLoader.LoadValueMapping(field.ValueMapping);
+                    }
+                    
+                    var walkResult = WalkSingleField(field.Oid, field.Type, field.Format, field.Map, fieldValueMap ?? tableValueMap);
                     fieldData[field.Name] = walkResult;
                 }
                 
@@ -122,9 +137,10 @@ namespace SnmpServerPoller.Snmp
         /// <summary>
         /// Walk одного поля таблицы
         /// </summary>
-        private Dictionary<string, string> WalkSingleField(string rootOid, string? fieldType = null, string? format = null, Dictionary<string, string>? map = null)
+        private Dictionary<string, string> WalkSingleField(string rootOid, string? fieldType = null, string? format = null, Dictionary<string, string>? map = null, Dictionary<string, string>? valueMapping = null)
         {
             var result = new Dictionary<string, string>();
+            
             try
             {
                 SimpleSnmp snmp = new(_targetIp, _community);
@@ -141,7 +157,8 @@ namespace SnmpServerPoller.Snmp
                     // Для полей типа "index" значение берётся из индекса OID
                     if (fieldType == "index")
                     {
-                        result[index] = DecodeIndexToIpAddress(index);
+                        // Просто возвращаем индекс как есть (число или строка)
+                        result[index] = index;
                     }
                     // Для полей типа "ipaddr" декодируем IP адрес из значения
                     else if (fieldType == "ipaddr")
@@ -158,6 +175,47 @@ namespace SnmpServerPoller.Snmp
                             }
                             decodedValue = $"{bytes[0]}.{bytes[1]}.{bytes[2]}.{bytes[3]}";
                         }
+                        // Пробуем декодировать IP адрес из индекса OID (альтернативный формат)
+                        else if (index.Contains("."))
+                        {
+                            // IP адрес закодирован в индексе OID (например, .192.168.1.1)
+                            string[] parts = index.Split('.');
+                            if (parts.Length >= 4)
+                            {
+                                try
+                                {
+                                    byte[] octets = new byte[4];
+                                    bool allParsed = true;
+                                    for (int i = 0; i < 4; i++)
+                                    {
+                                        if (!byte.TryParse(parts[i], out octets[i]))
+                                        {
+                                            allParsed = false;
+                                            break;
+                                        }
+                                    }
+                                    if (allParsed)
+                                    {
+                                        decodedValue = $"{octets[0]}.{octets[1]}.{octets[2]}.{octets[3]}";
+                                    }
+                                    else
+                                    {
+                                        string rawValueFallback = kvp.Value.ToString();
+                                        decodedValue = DecodeRawData(rawValueFallback, kvp.Value);
+                                    }
+                                }
+                                catch
+                                {
+                                    string rawValueFallback = kvp.Value.ToString();
+                                    decodedValue = DecodeRawData(rawValueFallback, kvp.Value);
+                                }
+                            }
+                            else
+                            {
+                                string rawValueFallback = kvp.Value.ToString();
+                                decodedValue = DecodeRawData(rawValueFallback, kvp.Value);
+                            }
+                        }
                         else
                         {
                             // Стандартное декодирование
@@ -167,16 +225,61 @@ namespace SnmpServerPoller.Snmp
                         
                         result[index] = decodedValue;
                     }
+                    // Для полей типа "macaddress" декодируем MAC адрес из OctetString
+                    else if (fieldType == "macaddress")
+                    {
+                        string decodedValue;
+                        
+                        // Получаем байты из OctetString для MAC адреса (6 байт)
+                        if (kvp.Value is OctetString macOctetStr && macOctetStr.Length >= 6)
+                        {
+                            byte[] bytes = new byte[6];
+                            for (int i = 0; i < 6; i++)
+                            {
+                                bytes[i] = macOctetStr[i];
+                            }
+                            decodedValue = $"{bytes[0]:X2}-{bytes[1]:X2}-{bytes[2]:X2}-{bytes[3]:X2}-{bytes[4]:X2}-{bytes[5]:X2}";
+                        }
+                        else
+                        {
+                            // Стандартное декодирование с попыткой извлечь байты
+                            string rawValue = kvp.Value.ToString();
+                            byte[] rawBytes = DecodeRawDataToBytes(rawValue, kvp.Value);
+                            
+                            if (rawBytes != null && rawBytes.Length >= 6)
+                            {
+                                decodedValue = $"{rawBytes[0]:X2}-{rawBytes[1]:X2}-{rawBytes[2]:X2}-{rawBytes[3]:X2}-{rawBytes[4]:X2}-{rawBytes[5]:X2}";
+                            }
+                            else
+                            {
+                                decodedValue = rawValue;
+                            }
+                        }
+                        
+                        result[index] = decodedValue;
+                    }
+                    // Для полей типа "oid" отображаем OID как строку
+                    else if (fieldType == "oid")
+                    {
+                        string rawValue = kvp.Value.ToString();
+                        // OID уже приходит в правильном формате, просто используем его
+                        result[index] = rawValue;
+                    }
                     else
                     {
                         // Декодирование с учетом кодировки и формата
                         string rawValue = kvp.Value.ToString();
                         string decodedValue = DecodeRawData(rawValue, kvp.Value);
                         
-                        // Применяем маппинг если указан (для int типов)
-                        if (map != null && map.TryGetValue(decodedValue, out var mappedValue))
+                        // Применяем справочник значений если указан
+                        if (valueMapping != null && valueMapping.TryGetValue(decodedValue, out var mappedValue))
                         {
                             decodedValue = mappedValue;
+                        }
+                        // Применяем встроенный маппинг если указан (для int типов)
+                        else if (map != null && map.TryGetValue(decodedValue, out var inlineMappedValue))
+                        {
+                            decodedValue = inlineMappedValue;
                         }
                         // Если маппинг не найден, но тип числовой - пробуем применить как есть
                         else if (map != null && long.TryParse(decodedValue, out _))
@@ -211,6 +314,12 @@ namespace SnmpServerPoller.Snmp
         private string DecodeIndexToIpAddress(string index)
         {
             if (string.IsNullOrEmpty(index)) return index;
+            
+            // Удаляем ведущую точку если есть
+            if (index.StartsWith("."))
+            {
+                index = index.Substring(1);
+            }
             
             // Формат 1: Числовой формат с точками (например, "192.168.1.1")
             if (index.Contains("."))
@@ -261,6 +370,8 @@ namespace SnmpServerPoller.Snmp
                         }
                         octets[i] = (byte)codePoint;
                     }
+                    // Для IP адресов и масок принимаем любой диапазон (0-255 для первого октета)
+                    // Маски могут быть 0.0.0.0, сети могут начинаться с 0 (по умолчанию)
                     if (allValid)
                     {
                         return $"{octets[0]}.{octets[1]}.{octets[2]}.{octets[3]}";
@@ -274,19 +385,13 @@ namespace SnmpServerPoller.Snmp
             
             // Формат 3: UTF-8 encoded bytes
             // Когда байты IP адреса были неправильно интерпретированы как UTF-8 текст
-            // и теперь нужно получить оригинальные байты из UTF-8 представления
             try
             {
                 byte[] utf8Bytes = System.Text.Encoding.UTF8.GetBytes(index);
                 if (utf8Bytes.Length >= 4)
                 {
-                    // Проверяем, могут ли первые 4 байта быть IP адресом
-                    // (все байты <= 255, что всегда true для byte[])
-                    // Дополнительная проверка: первый байт должен быть в диапазоне IP (1-223 для unicast)
-                    if (utf8Bytes[0] >= 1 && utf8Bytes[0] <= 223)
-                    {
-                        return $"{utf8Bytes[0]}.{utf8Bytes[1]}.{utf8Bytes[2]}.{utf8Bytes[3]}";
-                    }
+                    // Принимаем любой диапазон для первого октета (0-255)
+                    return $"{utf8Bytes[0]}.{utf8Bytes[1]}.{utf8Bytes[2]}.{utf8Bytes[3]}";
                 }
             }
             catch
@@ -419,6 +524,49 @@ namespace SnmpServerPoller.Snmp
         }
 
         /// <summary>
+        /// Декодирование значения в байты с поддержкой различных типов данных
+        /// </summary>
+        private byte[]? DecodeRawDataToBytes(string input, AsnType asnValue = null)
+        {
+            if (asnValue != null)
+            {
+                // Обработка OctetString - получаем байты напрямую
+                if (asnValue is OctetString octetStr)
+                {
+                    try
+                    {
+                        byte[] bytes = new byte[octetStr.Length];
+                        for (int i = 0; i < octetStr.Length; i++)
+                        {
+                            bytes[i] = octetStr[i];
+                        }
+                        return bytes;
+                    }
+                    catch { }
+                }
+            }
+            
+            // Стандартная обработка шестнадцатеричных данных
+            if (string.IsNullOrEmpty(input)) return null;
+            if (input.Contains(".") || input.Contains(":")) return null;
+
+            string clean = input.Replace(" ", "");
+            if (IsHex(clean))
+            {
+                try
+                {
+                    byte[] data = new byte[clean.Length / 2];
+                    for (int i = 0; i < clean.Length; i += 2)
+                        data[i / 2] = Convert.ToByte(clean.Substring(i, 2), 16);
+                    return data;
+                }
+                catch { }
+            }
+            
+            return null;
+        }
+
+        /// <summary>
         /// Получить системную информацию
         /// </summary>
         public SystemInfo GetSystemInfo()
@@ -480,6 +628,21 @@ namespace SnmpServerPoller.Snmp
                 if (kvp.Value.ContainsKey("Address")) info.Address = kvp.Value["Address"];
                 if (kvp.Value.ContainsKey("Mask")) info.Mask = kvp.Value["Mask"];
                 if (kvp.Value.ContainsKey("IfIndex")) info.IfIndex = ParseInt(kvp.Value["IfIndex"]);
+                
+                // Валидация IP адреса перед добавлением
+                if (!IsValidIpAddress(info.Address))
+                {
+                    _logger.Warn("Некорректный IP адрес: {0}, запись пропущена", info.Address);
+                    continue;
+                }
+                
+                // Валидация маски подсети
+                if (!IsValidIpAddress(info.Mask))
+                {
+                    _logger.Warn("Некорректная маска подсети: {0} для IP {1}, запись пропущена", info.Mask, info.Address);
+                    continue;
+                }
+                
                 list.Add(info);
             }
             
@@ -503,6 +666,20 @@ namespace SnmpServerPoller.Snmp
                 if (kvp.Value.ContainsKey("PhysAddress")) entry.Mac = kvp.Value["PhysAddress"];
                 if (kvp.Value.ContainsKey("NetAddress")) entry.Ip = kvp.Value["NetAddress"];
                 if (kvp.Value.ContainsKey("Type")) entry.Type = ParseInt(kvp.Value["Type"]);
+                
+                // Валидация IP адреса перед добавлением
+                if (!IsValidIpAddress(entry.Ip))
+                {
+                    _logger.Warn("Некорректный IP адрес в ARP: {0}, запись пропущена", entry.Ip);
+                    continue;
+                }
+                
+                // Валидация MAC адреса
+                if (!IsValidMacAddress(entry.Mac))
+                {
+                    _logger.Warn("Некорректный MAC адрес в ARP: {0} для IP {1}, запись пропущена", entry.Mac, entry.Ip);
+                    continue;
+                }
                 
                 // Фильтруем только динамические записи (type != 2)
                 if (entry.Type != 2) list.Add(entry);
@@ -532,11 +709,77 @@ namespace SnmpServerPoller.Snmp
                 if (kvp.Value.ContainsKey("Proto")) entry.Proto = ParseInt(kvp.Value["Proto"]) == 2 ? "local" : ParseInt(kvp.Value["Proto"]).ToString();
                 if (kvp.Value.ContainsKey("Metric")) entry.Metric = ParseInt(kvp.Value["Metric"]);
                 if (kvp.Value.ContainsKey("Age")) entry.Age = ParseInt(kvp.Value["Age"]);
+                
+                // Валидация IP адреса назначения
+                if (!IsValidIpAddress(entry.Dest))
+                {
+                    _logger.Warn("Некорректный IP адрес назначения: {0}, запись пропущена", entry.Dest);
+                    continue;
+                }
+                
+                // Валидация маски подсети
+                if (!IsValidIpAddress(entry.Mask))
+                {
+                    _logger.Warn("Некорректная маска подсети: {0} для маршрута {1}, запись пропущена", entry.Mask, entry.Dest);
+                    continue;
+                }
+                
+                // Валидация NextHop если указан
+                if (!string.IsNullOrEmpty(entry.NextHop) && !IsValidIpAddress(entry.NextHop))
+                {
+                    _logger.Warn("Некорректный NextHop: {0} для маршрута {1}, запись пропущена", entry.NextHop, entry.Dest);
+                    continue;
+                }
+                
                 list.Add(entry);
             }
             
             _logger.Info("   Найдено маршрутов: {0}", list.Count);
             return list;
+        }
+        
+        /// <summary>
+        /// Проверка корректности IPv4 адреса
+        /// </summary>
+        private static bool IsValidIpAddress(string ip)
+        {
+            if (string.IsNullOrEmpty(ip)) return false;
+
+            string[] parts = ip.Split('.');
+            if (parts.Length != 4) return false;
+
+            foreach (var part in parts)
+            {
+                if (!byte.TryParse(part, out _))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Проверка корректности MAC адреса
+        /// Поддерживаемые форматы: XX-XX-XX-XX-XX-XX, XX:XX:XX:XX:XX:XX, XXXXXXXXXXXX
+        /// </summary>
+        private static bool IsValidMacAddress(string mac)
+        {
+            if (string.IsNullOrEmpty(mac)) return false;
+
+            // Формат с дефисами: XX-XX-XX-XX-XX-XX
+            if (Regex.IsMatch(mac, @"^([0-9A-Fa-f]{2}-){5}[0-9A-Fa-f]{2}$"))
+                return true;
+
+            // Формат с двоеточиями: XX:XX:XX:XX:XX:XX
+            if (Regex.IsMatch(mac, @"^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$"))
+                return true;
+
+            // Формат без разделителей: XXXXXXXXXXXX
+            if (Regex.IsMatch(mac, @"^[0-9A-Fa-f]{12}$"))
+                return true;
+
+            return false;
         }
 
         /// <summary>

@@ -2,6 +2,9 @@
 
 namespace SnmpServerPoller.Logging
 {
+    /// <summary>
+    /// Интерфейс для логгирования сообщений приложения
+    /// </summary>
     public interface ILogger
     {
         void Debug(string message, params object[] args);
