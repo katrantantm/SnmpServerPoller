@@ -5,10 +5,10 @@ __pycache__/
 *.o
 *.obj
 *.class
-*.exe
 *.dll
 *.so
 *.a
+*.exe
 *.out
 
 # Dependencies
@@ -31,6 +31,7 @@ __pycache__/
 *.pyo
 *.pyd
 .Python
+*.so
 *.egg-info/
 .eggs/
 .mypy_cache/

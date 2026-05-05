@@ -80,9 +80,23 @@ namespace SnmpServerPoller.Snmp
                 // Собираем данные для каждого поля
                 var fieldData = new Dictionary<string, Dictionary<string, string>>();
                 
+                // Загружаем общий справочник значений для таблицы если указан
+                Dictionary<string, string>? tableValueMap = null;
+                if (!string.IsNullOrEmpty(tableConfig.ValueMapping))
+                {
+                    tableValueMap = OidConfigLoader.LoadValueMapping(tableConfig.ValueMapping);
+                }
+                
                 foreach (var field in tableConfig.Fields)
                 {
-                    var walkResult = WalkSingleField(field.Oid, field.Type, field.Format, field.Map);
+                    // Загружаем индивидуальный справочник для поля если указан (переопределяет таблицу)
+                    Dictionary<string, string>? fieldValueMap = null;
+                    if (!string.IsNullOrEmpty(field.ValueMapping))
+                    {
+                        fieldValueMap = OidConfigLoader.LoadValueMapping(field.ValueMapping);
+                    }
+                    
+                    var walkResult = WalkSingleField(field.Oid, field.Type, field.Format, field.Map, fieldValueMap ?? tableValueMap);
                     fieldData[field.Name] = walkResult;
                 }
                 
@@ -123,9 +137,10 @@ namespace SnmpServerPoller.Snmp
         /// <summary>
         /// Walk одного поля таблицы
         /// </summary>
-        private Dictionary<string, string> WalkSingleField(string rootOid, string? fieldType = null, string? format = null, Dictionary<string, string>? map = null)
+        private Dictionary<string, string> WalkSingleField(string rootOid, string? fieldType = null, string? format = null, Dictionary<string, string>? map = null, Dictionary<string, string>? valueMapping = null)
         {
             var result = new Dictionary<string, string>();
+            
             try
             {
                 SimpleSnmp snmp = new(_targetIp, _community);
@@ -256,10 +271,15 @@ namespace SnmpServerPoller.Snmp
                         string rawValue = kvp.Value.ToString();
                         string decodedValue = DecodeRawData(rawValue, kvp.Value);
                         
-                        // Применяем маппинг если указан (для int типов)
-                        if (map != null && map.TryGetValue(decodedValue, out var mappedValue))
+                        // Применяем справочник значений если указан
+                        if (valueMapping != null && valueMapping.TryGetValue(decodedValue, out var mappedValue))
                         {
                             decodedValue = mappedValue;
+                        }
+                        // Применяем встроенный маппинг если указан (для int типов)
+                        else if (map != null && map.TryGetValue(decodedValue, out var inlineMappedValue))
+                        {
+                            decodedValue = inlineMappedValue;
                         }
                         // Если маппинг не найден, но тип числовой - пробуем применить как есть
                         else if (map != null && long.TryParse(decodedValue, out _))
