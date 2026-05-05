@@ -1,11 +1,56 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Net;
 using System.Text.RegularExpressions;
 using SnmpServerPoller.Models;
 
 namespace SnmpServerPoller.Validation
 {
+    /// <summary>
+    /// Валидатор сетевых данных (IP, MAC адреса)
+    /// </summary>
+    public static class NetworkValidator
+    {
+        private static readonly Regex IpAddressPattern = new(@"^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$", RegexOptions.Compiled);
+        private static readonly Regex MacDashPattern = new(@"^([0-9A-Fa-f]{2}-){5}[0-9A-Fa-f]{2}$", RegexOptions.Compiled);
+        private static readonly Regex MacColonPattern = new(@"^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$", RegexOptions.Compiled);
+        private static readonly Regex MacPlainPattern = new(@"^[0-9A-Fa-f]{12}$", RegexOptions.Compiled);
+
+        /// <summary>
+        /// Проверка корректности IPv4 адреса
+        /// </summary>
+        public static bool IsValidIpAddress(string? ip)
+        {
+            if (string.IsNullOrEmpty(ip)) return false;
+
+            var match = IpAddressPattern.Match(ip);
+            if (!match.Success) return false;
+
+            for (int i = 1; i <= 4; i++)
+            {
+                if (!byte.TryParse(match.Groups[i].Value, out _))
+                    return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Проверка корректности MAC адреса
+        /// Поддерживаемые форматы: XX-XX-XX-XX-XX-XX, XX:XX:XX:XX:XX:XX, XXXXXXXXXXXX
+        /// </summary>
+        public static bool IsValidMacAddress(string? mac)
+        {
+            if (string.IsNullOrEmpty(mac)) return false;
+
+            return MacDashPattern.IsMatch(mac) 
+                || MacColonPattern.IsMatch(mac) 
+                || MacPlainPattern.IsMatch(mac);
+        }
+    }
+
     /// <summary>
     /// Валидатор данных SNMP таблиц
     /// </summary>
@@ -19,6 +64,7 @@ namespace SnmpServerPoller.Validation
         /// </summary>
         public IReadOnlyList<ValidationResult> Errors => _errors.AsReadOnly();
         public IReadOnlyList<ValidationResult> Warnings => _warnings.AsReadOnly();
+        public bool HasErrors => _errors.Count > 0;
 
         /// <summary>
         /// Валидировать ARP таблицу
@@ -27,40 +73,24 @@ namespace SnmpServerPoller.Validation
         {
             foreach (var entry in entries)
             {
-                // Валидация IP адреса
-                if (!IsValidIpAddress(entry.Ip))
+                if (!NetworkValidator.IsValidIpAddress(entry.Ip))
                 {
-                    _errors.Add(new ValidationResult(
-                        tableName,
-                        $"Invalid IP address: {entry.Ip}",
-                        ValidationSeverity.Error));
+                    _errors.Add(new ValidationResult(tableName, $"Invalid IP address: {entry.Ip}", ValidationSeverity.Error));
                 }
 
-                // Валидация MAC адреса
-                if (!IsValidMacAddress(entry.Mac))
+                if (!NetworkValidator.IsValidMacAddress(entry.Mac))
                 {
-                    _errors.Add(new ValidationResult(
-                        tableName,
-                        $"Invalid MAC address: {entry.Mac}",
-                        ValidationSeverity.Error));
+                    _errors.Add(new ValidationResult(tableName, $"Invalid MAC address: {entry.Mac}", ValidationSeverity.Error));
                 }
 
-                // Валидация IfIndex (должен быть положительным)
                 if (entry.IfIndex <= 0)
                 {
-                    _warnings.Add(new ValidationResult(
-                        tableName,
-                        $"Invalid IfIndex: {entry.IfIndex}",
-                        ValidationSeverity.Warning));
+                    _warnings.Add(new ValidationResult(tableName, $"Invalid IfIndex: {entry.IfIndex}", ValidationSeverity.Warning));
                 }
 
-                // Валидация типа ARP записи
-                if (entry.Type < 1 || entry.Type > 4)
+                if (entry.Type is < 1 or > 4)
                 {
-                    _warnings.Add(new ValidationResult(
-                        tableName,
-                        $"Unknown ARP type: {entry.Type}",
-                        ValidationSeverity.Warning));
+                    _warnings.Add(new ValidationResult(tableName, $"Unknown ARP type: {entry.Type}", ValidationSeverity.Warning));
                 }
             }
         }
@@ -72,49 +102,29 @@ namespace SnmpServerPoller.Validation
         {
             foreach (var entry in entries)
             {
-                // Валидация IP адреса назначения
-                if (!IsValidIpAddress(entry.Dest))
+                if (!NetworkValidator.IsValidIpAddress(entry.Dest))
                 {
-                    _errors.Add(new ValidationResult(
-                        tableName,
-                        $"Invalid destination IP address: {entry.Dest}",
-                        ValidationSeverity.Error));
+                    _errors.Add(new ValidationResult(tableName, $"Invalid destination IP address: {entry.Dest}", ValidationSeverity.Error));
                 }
 
-                // Валидация маски подсети
-                if (!IsValidIpAddress(entry.Mask))
+                if (!NetworkValidator.IsValidIpAddress(entry.Mask))
                 {
-                    _errors.Add(new ValidationResult(
-                        tableName,
-                        $"Invalid subnet mask: {entry.Mask}",
-                        ValidationSeverity.Error));
+                    _errors.Add(new ValidationResult(tableName, $"Invalid subnet mask: {entry.Mask}", ValidationSeverity.Error));
                 }
 
-                // Валидация IP адреса следующего хопа
-                if (!string.IsNullOrEmpty(entry.NextHop) && !IsValidIpAddress(entry.NextHop))
+                if (!string.IsNullOrEmpty(entry.NextHop) && !NetworkValidator.IsValidIpAddress(entry.NextHop))
                 {
-                    _errors.Add(new ValidationResult(
-                        tableName,
-                        $"Invalid next hop IP address: {entry.NextHop}",
-                        ValidationSeverity.Error));
+                    _errors.Add(new ValidationResult(tableName, $"Invalid next hop IP address: {entry.NextHop}", ValidationSeverity.Error));
                 }
 
-                // Валидация IfIndex
                 if (entry.IfIndex <= 0)
                 {
-                    _warnings.Add(new ValidationResult(
-                        tableName,
-                        $"Invalid IfIndex: {entry.IfIndex}",
-                        ValidationSeverity.Warning));
+                    _warnings.Add(new ValidationResult(tableName, $"Invalid IfIndex: {entry.IfIndex}", ValidationSeverity.Warning));
                 }
 
-                // Валидация метрики
                 if (entry.Metric < 0)
                 {
-                    _warnings.Add(new ValidationResult(
-                        tableName,
-                        $"Negative metric: {entry.Metric}",
-                        ValidationSeverity.Warning));
+                    _warnings.Add(new ValidationResult(tableName, $"Negative metric: {entry.Metric}", ValidationSeverity.Warning));
                 }
             }
         }
@@ -126,81 +136,21 @@ namespace SnmpServerPoller.Validation
         {
             foreach (var entry in entries)
             {
-                // Валидация IP адреса
-                if (!IsValidIpAddress(entry.Address))
+                if (!NetworkValidator.IsValidIpAddress(entry.Address))
                 {
-                    _errors.Add(new ValidationResult(
-                        tableName,
-                        $"Invalid IP address: {entry.Address}",
-                        ValidationSeverity.Error));
+                    _errors.Add(new ValidationResult(tableName, $"Invalid IP address: {entry.Address}", ValidationSeverity.Error));
                 }
 
-                // Валидация маски подсети
-                if (!IsValidIpAddress(entry.Mask))
+                if (!NetworkValidator.IsValidIpAddress(entry.Mask))
                 {
-                    _errors.Add(new ValidationResult(
-                        tableName,
-                        $"Invalid subnet mask: {entry.Mask}",
-                        ValidationSeverity.Error));
+                    _errors.Add(new ValidationResult(tableName, $"Invalid subnet mask: {entry.Mask}", ValidationSeverity.Error));
                 }
 
-                // Валидация IfIndex
                 if (entry.IfIndex <= 0)
                 {
-                    _warnings.Add(new ValidationResult(
-                        tableName,
-                        $"Invalid IfIndex: {entry.IfIndex}",
-                        ValidationSeverity.Warning));
+                    _warnings.Add(new ValidationResult(tableName, $"Invalid IfIndex: {entry.IfIndex}", ValidationSeverity.Warning));
                 }
             }
-        }
-
-        /// <summary>
-        /// Проверка корректности IPv4 адреса
-        /// </summary>
-        private static bool IsValidIpAddress(string ip)
-        {
-            if (string.IsNullOrEmpty(ip)) return false;
-
-            // Проверяем формат с помощью регулярного выражения
-            var pattern = @"^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$";
-            var match = Regex.Match(ip, pattern);
-
-            if (!match.Success) return false;
-
-            // Проверяем каждый октет на диапазон 0-255
-            for (int i = 1; i <= 4; i++)
-            {
-                if (!byte.TryParse(match.Groups[i].Value, out _))
-                {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
-        /// <summary>
-        /// Проверка корректности MAC адреса
-        /// Поддерживаемые форматы: XX-XX-XX-XX-XX-XX, XX:XX:XX:XX:XX:XX, XXXXXXXXXXXX
-        /// </summary>
-        private static bool IsValidMacAddress(string mac)
-        {
-            if (string.IsNullOrEmpty(mac)) return false;
-
-            // Формат с дефисами: XX-XX-XX-XX-XX-XX
-            var pattern1 = @"^([0-9A-Fa-f]{2}-){5}[0-9A-Fa-f]{2}$";
-            if (Regex.IsMatch(mac, pattern1)) return true;
-
-            // Формат с двоеточиями: XX:XX:XX:XX:XX:XX
-            var pattern2 = @"^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$";
-            if (Regex.IsMatch(mac, pattern2)) return true;
-
-            // Формат без разделителей: XXXXXXXXXXXX
-            var pattern3 = @"^[0-9A-Fa-f]{12}$";
-            if (Regex.IsMatch(mac, pattern3)) return true;
-
-            return false;
         }
 
         /// <summary>
@@ -213,17 +163,9 @@ namespace SnmpServerPoller.Validation
         }
 
         /// <summary>
-        /// Есть ли ошибки валидации
-        /// </summary>
-        public bool HasErrors => _errors.Count > 0;
-
-        /// <summary>
         /// Получить сводку результатов валидации
         /// </summary>
-        public string GetSummary()
-        {
-            return $"Validation complete: {_errors.Count} errors, {_warnings.Count} warnings";
-        }
+        public string GetSummary() => $"Validation complete: {_errors.Count} errors, {_warnings.Count} warnings";
     }
 
     /// <summary>
@@ -242,10 +184,7 @@ namespace SnmpServerPoller.Validation
             Severity = severity;
         }
 
-        public override string ToString()
-        {
-            return $"[{Severity}] {TableName}: {Message}";
-        }
+        public override string ToString() => $"[{Severity}] {TableName}: {Message}";
     }
 
     /// <summary>
