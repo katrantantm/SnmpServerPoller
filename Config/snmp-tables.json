@@ -364,7 +364,7 @@
       "baseOid": ".1.3.6.1.2.1.25.3.2.1",
       "fields": [
         { "name": "Index", "oid": ".1.3.6.1.2.1.25.3.2.1.1", "type": "index" },
-        { "name": "Type", "oid": ".1.3.6.1.2.1.25.3.2.1.2", "type": "string" },
+        { "name": "Type", "oid": ".1.3.6.1.2.1.25.3.2.1.2", "type": "oid" },
         { "name": "Descr", "oid": ".1.3.6.1.2.1.25.3.2.1.3", "type": "string" },
         { "name": "ID", "oid": ".1.3.6.1.2.1.25.3.2.1.4", "type": "string" },
         { "name": "Status", "oid": ".1.3.6.1.2.1.25.3.2.1.5", "type": "int" },

@@ -142,7 +142,8 @@ namespace SnmpServerPoller.Snmp
                     // Для полей типа "index" значение берётся из индекса OID
                     if (fieldType == "index")
                     {
-                        result[index] = DecodeIndexToIpAddress(index);
+                        // Просто возвращаем индекс как есть (число или строка)
+                        result[index] = index;
                     }
                     // Для полей типа "ipaddr" декодируем IP адрес из значения
                     else if (fieldType == "ipaddr")
@@ -241,6 +242,13 @@ namespace SnmpServerPoller.Snmp
                         }
                         
                         result[index] = decodedValue;
+                    }
+                    // Для полей типа "oid" отображаем OID как строку
+                    else if (fieldType == "oid")
+                    {
+                        string rawValue = kvp.Value.ToString();
+                        // OID уже приходит в правильном формате, просто используем его
+                        result[index] = rawValue;
                     }
                     else
                     {
