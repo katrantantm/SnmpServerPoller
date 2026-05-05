@@ -340,10 +340,21 @@ namespace SnmpServerPoller.Config
                 
                 if (!File.Exists(fullPath))
                 {
+                    // Пробуем относительный путь от текущей директории
+                    fullPath = "Config/oid-mappings.json";
+                    if (!File.Exists(fullPath))
+                    {
+                        fullPath = "oid-mappings.json";
+                    }
+                }
+                
+                if (!File.Exists(fullPath))
+                {
                     Console.WriteLine($"⚠️ Файл справочника значений 'oid-mappings.json' не найден.");
                     return null;
                 }
 
+                Console.WriteLine($"[DEBUG] Loading value mapping '{mappingName}' from {fullPath}");
                 string json = File.ReadAllText(fullPath);
                 var mappingData = JsonConvert.DeserializeObject<dynamic>(json);
                 
@@ -363,9 +374,18 @@ namespace SnmpServerPoller.Config
                                 {
                                     result[prop.Name] = prop.Value?.ToString() ?? string.Empty;
                                 }
+                                Console.WriteLine($"[DEBUG] Loaded {result.Count} entries for '{mappingName}'");
                             }
                             return result;
                         }
+                        else
+                        {
+                            Console.WriteLine($"[DEBUG] No 'values' section found for '{mappingName}'");
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine($"[DEBUG] No mapping section found for '{mappingName}'");
                     }
                 }
             }
