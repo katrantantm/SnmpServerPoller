@@ -286,6 +286,12 @@ namespace SnmpServerPoller.Snmp
         {
             if (string.IsNullOrEmpty(index)) return index;
             
+            // Удаляем ведущую точку если есть
+            if (index.StartsWith("."))
+            {
+                index = index.Substring(1);
+            }
+            
             // Формат 1: Числовой формат с точками (например, "192.168.1.1")
             if (index.Contains("."))
             {
@@ -335,7 +341,7 @@ namespace SnmpServerPoller.Snmp
                         }
                         octets[i] = (byte)codePoint;
                     }
-                    if (allValid)
+                    if (allValid && octets[0] >= 1 && octets[0] <= 223)
                     {
                         return $"{octets[0]}.{octets[1]}.{octets[2]}.{octets[3]}";
                     }
@@ -348,19 +354,12 @@ namespace SnmpServerPoller.Snmp
             
             // Формат 3: UTF-8 encoded bytes
             // Когда байты IP адреса были неправильно интерпретированы как UTF-8 текст
-            // и теперь нужно получить оригинальные байты из UTF-8 представления
             try
             {
                 byte[] utf8Bytes = System.Text.Encoding.UTF8.GetBytes(index);
-                if (utf8Bytes.Length >= 4)
+                if (utf8Bytes.Length >= 4 && utf8Bytes[0] >= 1 && utf8Bytes[0] <= 223)
                 {
-                    // Проверяем, могут ли первые 4 байта быть IP адресом
-                    // (все байты <= 255, что всегда true для byte[])
-                    // Дополнительная проверка: первый байт должен быть в диапазоне IP (1-223 для unicast)
-                    if (utf8Bytes[0] >= 1 && utf8Bytes[0] <= 223)
-                    {
-                        return $"{utf8Bytes[0]}.{utf8Bytes[1]}.{utf8Bytes[2]}.{utf8Bytes[3]}";
-                    }
+                    return $"{utf8Bytes[0]}.{utf8Bytes[1]}.{utf8Bytes[2]}.{utf8Bytes[3]}";
                 }
             }
             catch
