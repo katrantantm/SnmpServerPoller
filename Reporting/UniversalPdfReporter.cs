@@ -107,14 +107,19 @@ namespace SnmpServerPoller.Reporting
             }
             
             // Форматируем скорость
+            // ifHighSpeed (.1.3.6.1.2.1.31.1.1.1.15) возвращается в Мбит/с, поэтому умножаем на 1_000_000
             if (fieldConfig.Format == "speed" && ulong.TryParse(rawValue, out ulong speed))
             {
-                if (speed >= 1000000000)
-                    return $"{(speed / 1000000000.0):F1} Gbps";
-                if (speed >= 1000000)
-                    return $"{(speed / 1000000.0):F1} Mbps";
-                if (speed >= 1000)
-                    return $"{(speed / 1000.0):F1} Kbps";
+                // Если значение меньше 100000, предполагаем что это Мбит/с и конвертируем в бит/с
+                if (speed < 100_000)
+                    speed = speed * 1_000_000;
+                
+                if (speed >= 1_000_000_000)
+                    return $"{(speed / 1_000_000_000.0):F1} Gbps";
+                if (speed >= 1_000_000)
+                    return $"{(speed / 1_000_000.0):F1} Mbps";
+                if (speed >= 1_000)
+                    return $"{(speed / 1_000.0):F1} Kbps";
                 return $"{speed} bps";
             }
             
