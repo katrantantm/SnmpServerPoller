@@ -271,8 +271,11 @@ namespace SnmpServerPoller.Snmp
                         string rawValue = kvp.Value.ToString();
                         string decodedValue = DecodeRawData(rawValue, kvp.Value);
                         
-                        // Применяем справочник значений если указан
-                        if (valueMapping != null && valueMapping.TryGetValue(decodedValue, out var mappedValue))
+                        // Применяем справочник значений только если это НЕ числовое значение
+                        // или если поле не имеет форматирования (чтобы не ломать числовые поля типа speed)
+                        bool isNumericField = !string.IsNullOrEmpty(format) || ulong.TryParse(decodedValue, out _);
+                        
+                        if (valueMapping != null && !isNumericField && valueMapping.TryGetValue(decodedValue, out var mappedValue))
                         {
                             decodedValue = mappedValue;
                         }
@@ -280,11 +283,6 @@ namespace SnmpServerPoller.Snmp
                         else if (map != null && map.TryGetValue(decodedValue, out var inlineMappedValue))
                         {
                             decodedValue = inlineMappedValue;
-                        }
-                        // Если маппинг не найден, но тип числовой - пробуем применить как есть
-                        else if (map != null && long.TryParse(decodedValue, out _))
-                        {
-                            // Числовое значение без маппинга оставляем как есть
                         }
                         
                         // Применяем форматирование если указано
