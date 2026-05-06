@@ -106,16 +106,18 @@ namespace SnmpServerPoller.Reporting
                 return mappedValue;
             }
             
-            // Форматируем скорость
-            if (fieldConfig.Format == "speed" && ulong.TryParse(rawValue, out ulong speed))
+            // Форматируем скорость (ifHighSpeed возвращается в Мбит/с)
+            if (fieldConfig.Format == "speed_mbps" && ulong.TryParse(rawValue, out ulong speedMbps))
             {
-                if (speed >= 1000000000)
-                    return $"{(speed / 1000000000.0):F1} Gbps";
-                if (speed >= 1000000)
-                    return $"{(speed / 1000000.0):F1} Mbps";
-                if (speed >= 1000)
-                    return $"{(speed / 1000.0):F1} Kbps";
-                return $"{speed} bps";
+                if (speedMbps >= 1_000)
+                    return $"{(speedMbps / 1_000.0):F1} Gbps";
+                return $"{speedMbps} Mbps";
+            }
+            
+            // Если значение не числовое (например, OID или строка), возвращаем N/A
+            if (fieldConfig.Format == "speed_mbps")
+            {
+                return "N/A";
             }
             
             return rawValue;

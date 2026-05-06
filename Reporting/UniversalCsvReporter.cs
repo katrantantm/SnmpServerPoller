@@ -105,16 +105,18 @@ namespace SnmpServerPoller.Reporting
                 return EscapeCsv(mappedValue);
             }
             
-            // Форматируем скорость
-            if (fieldConfig.Format == "speed" && ulong.TryParse(rawValue, out ulong speed))
+            // Форматируем скорость (ifHighSpeed возвращается в Мбит/с)
+            if (fieldConfig.Format == "speed_mbps" && ulong.TryParse(rawValue, out ulong speedMbps))
             {
-                if (speed >= 1000000000)
-                    return EscapeCsv($"{(speed / 1000000000.0):F1} Gbps");
-                if (speed >= 1000000)
-                    return EscapeCsv($"{(speed / 1000000.0):F1} Mbps");
-                if (speed >= 1000)
-                    return EscapeCsv($"{(speed / 1000.0):F1} Kbps");
-                return EscapeCsv($"{speed} bps");
+                if (speedMbps >= 1_000)
+                    return EscapeCsv($"{(speedMbps / 1_000.0):F1} Gbps");
+                return EscapeCsv($"{speedMbps} Mbps");
+            }
+            
+            // Если значение не числовое (например, OID или строка), возвращаем N/A
+            if (fieldConfig.Format == "speed_mbps")
+            {
+                return EscapeCsv("N/A");
             }
             
             return EscapeCsv(rawValue);

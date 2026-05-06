@@ -5,7 +5,6 @@
       "description": "Информация о сетевых интерфейсах (IF-MIB + IF-X-MIB)",
       "baseOid": ".1.3.6.1.2.1.2.2.1",
       "useHighCapacity": true,
-      "valueMapping": "ifType",
       "fields": [
         { "name": "Index", "oid": ".1.3.6.1.2.1.2.2.1.1", "type": "index" },
         { "name": "Description", "oid": ".1.3.6.1.2.1.31.1.1.1.18", "type": "string", "encoding": "utf8" },
@@ -13,18 +12,24 @@
         { 
           "name": "Type", 
           "oid": ".1.3.6.1.2.1.2.2.1.3", 
-          "type": "int"
+          "type": "long",
+          "valueMapping": "ifType"
         },
-        { "name": "Mtu", "oid": ".1.3.6.1.2.1.2.2.1.4", "type": "int" },
-        { "name": "Speed", "oid": ".1.3.6.1.2.1.31.1.1.1.15", "type": "long", "format": "speed" },
-        { "name": "AdminStatus", "oid": ".1.3.6.1.2.1.2.2.1.7", "type": "int", "valueMapping": "ifAdminStatus" },
-        { "name": "OperStatus", "oid": ".1.3.6.1.2.1.2.2.1.8", "type": "int", "valueMapping": "ifOperStatus" },
+        { "name": "Mtu", "oid": ".1.3.6.1.2.1.2.2.1.4", "type": "long" },
+        { 
+          "name": "Speed", 
+          "oid": ".1.3.6.1.2.1.31.1.1.1.15", 
+          "type": "long", 
+          "format": "speed_mbps" 
+        },
+        { "name": "AdminStatus", "oid": ".1.3.6.1.2.1.2.2.1.7", "type": "long", "valueMapping": "ifAdminStatus" },
+        { "name": "OperStatus", "oid": ".1.3.6.1.2.1.2.2.1.8", "type": "long", "valueMapping": "ifOperStatus" },
         { "name": "InOctets", "oid": ".1.3.6.1.2.1.31.1.1.1.6", "type": "ulong" },
         { "name": "OutOctets", "oid": ".1.3.6.1.2.1.31.1.1.1.10", "type": "ulong" },
-        { "name": "InErrors", "oid": ".1.3.6.1.2.1.2.2.1.14", "type": "uint" },
-        { "name": "OutErrors", "oid": ".1.3.6.1.2.1.2.2.1.20", "type": "uint" },
-        { "name": "InDiscards", "oid": ".1.3.6.1.2.1.31.1.1.1.3", "type": "uint" },
-        { "name": "OutDiscards", "oid": ".1.3.6.1.2.1.31.1.1.1.4", "type": "uint" }
+        { "name": "InErrors", "oid": ".1.3.6.1.2.1.2.2.1.14", "type": "ulong" },
+        { "name": "OutErrors", "oid": ".1.3.6.1.2.1.2.2.1.20", "type": "ulong" },
+        { "name": "InDiscards", "oid": ".1.3.6.1.2.1.31.1.1.1.3", "type": "ulong" },
+        { "name": "OutDiscards", "oid": ".1.3.6.1.2.1.31.1.1.1.4", "type": "ulong" }
       ]
     },
     "ipAddresses": {
@@ -74,7 +79,12 @@
       "valueMapping": "hrStorageType",
       "fields": [
         { "name": "Index", "oid": ".1.3.6.1.2.1.25.2.3.1.1", "type": "index" },
-        { "name": "Type", "oid": ".1.3.6.1.2.1.25.2.3.1.2", "type": "oid" },
+        { 
+          "name": "Type", 
+          "oid": ".1.3.6.1.2.1.25.2.3.1.2", 
+          "type": "oid",
+          "valueMapping": "hrStorageType"
+        },
         { "name": "Descr", "oid": ".1.3.6.1.2.1.25.2.3.1.3", "type": "string" },
         { "name": "Units", "oid": ".1.3.6.1.2.1.25.2.3.1.4", "type": "long" },
         { "name": "Size", "oid": ".1.3.6.1.2.1.25.2.3.1.5", "type": "long" },
@@ -112,7 +122,12 @@
       "valueMapping": "hrDeviceType",
       "fields": [
         { "name": "Index", "oid": ".1.3.6.1.2.1.25.3.2.1.1", "type": "index" },
-        { "name": "Type", "oid": ".1.3.6.1.2.1.25.3.2.1.2", "type": "oid" },
+        { 
+          "name": "Type", 
+          "oid": ".1.3.6.1.2.1.25.3.2.1.2", 
+          "type": "oid",
+          "valueMapping": "hrDeviceType"
+        },
         { "name": "Descr", "oid": ".1.3.6.1.2.1.25.3.2.1.3", "type": "string" },
         { "name": "ID", "oid": ".1.3.6.1.2.1.25.3.2.1.4", "type": "string" },
         { "name": "Status", "oid": ".1.3.6.1.2.1.25.3.2.1.5", "type": "int", "valueMapping": "hrDeviceStatus" },

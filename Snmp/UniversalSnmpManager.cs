@@ -258,12 +258,90 @@ namespace SnmpServerPoller.Snmp
                         
                         result[index] = decodedValue;
                     }
-                    // Для полей типа "oid" отображаем OID как строку
-                    else if (fieldType == "oid")
+                    // Для числовых полей (long, int, uint, ulong) с форматированием ИЛИ valueMapping
+                    else if ((fieldType == "long" || fieldType == "int" || fieldType == "uint" || fieldType == "ulong"))
+                    {
+                        // Берем значение напрямую из числового типа SNMP
+                        string numericValue = null;
+                        if (kvp.Value is Gauge32 gauge32)
+                        {
+                            numericValue = gauge32.Value.ToString();
+                        }
+                        else if (kvp.Value is Integer32 asnInt)
+                        {
+                            numericValue = asnInt.Value.ToString();
+                        }
+                        else if (kvp.Value is Counter32 counter32)
+                        {
+                            numericValue = counter32.Value.ToString();
+                        }
+                        else if (kvp.Value is Counter64 counter64)
+                        {
+                            numericValue = counter64.Value.ToString();
+                        }
+                        else
+                        {
+                            // Пытаемся получить строковое представление и распарсить
+                            string rawValue = kvp.Value.ToString();
+                            numericValue = DecodeRawData(rawValue, kvp.Value);
+                        }
+                        
+                        // Если numericValue все еще null или пустой, пробуем распарсить строку как число для форматирования
+                        if (string.IsNullOrEmpty(numericValue) && !string.IsNullOrEmpty(format))
+                        {
+                            string rawValue = kvp.Value.ToString();
+                            // Пытаемся распарсить сырую строку как число
+                            if (ulong.TryParse(rawValue, out ulong parsedValue))
+                            {
+                                numericValue = parsedValue.ToString();
+                            }
+                        }
+                        
+                        // Сначала применяем форматирование если указано
+                        if (!string.IsNullOrEmpty(format))
+                        {
+                            if (!string.IsNullOrEmpty(numericValue))
+                            {
+                                result[index] = ApplyFormat(numericValue, format);
+                            }
+                            else
+                            {
+                                result[index] = "N/A";
+                            }
+                        }
+                        // Затем применяем valueMapping если указано (и нет форматирования)
+                        else if (valueMapping != null && !string.IsNullOrEmpty(numericValue))
+                        {
+                            if (valueMapping.TryGetValue(numericValue, out var mappedValue))
+                            {
+                                result[index] = mappedValue;
+                            }
+                            else
+                            {
+                                result[index] = numericValue;
+                            }
+                        }
+                        else
+                        {
+                            result[index] = numericValue ?? "N/A";
+                        }
+                    }
+                    // Для полей типа oid с valueMapping
+                    else if (fieldType == "oid" && valueMapping != null)
                     {
                         string rawValue = kvp.Value.ToString();
-                        // OID уже приходит в правильном формате, просто используем его
-                        result[index] = rawValue;
+                        // OID может приходить с ведущей точкой или без - нормализуем
+                        string decodedValue = rawValue.TrimStart('.');
+                        
+                        // Пробуем найти в справочнике сначала как есть, затем с ведущей точкой
+                        string mappedValue;
+                        if (!valueMapping.TryGetValue(decodedValue, out mappedValue))
+                        {
+                            string altKey = rawValue.StartsWith(".") ? rawValue.Substring(1) : "." + rawValue;
+                            valueMapping.TryGetValue(altKey, out mappedValue);
+                        }
+                        
+                        result[index] = mappedValue ?? rawValue;
                     }
                     else
                     {
@@ -271,7 +349,8 @@ namespace SnmpServerPoller.Snmp
                         string rawValue = kvp.Value.ToString();
                         string decodedValue = DecodeRawData(rawValue, kvp.Value);
                         
-                        // Применяем справочник значений если указан
+                        // Применяем справочник значений (valueMapping) если указан
+                        // valueMapping используется для преобразования числовых кодов в названия (например, ifType: 6 -> ethernetCsmacd)
                         if (valueMapping != null && valueMapping.TryGetValue(decodedValue, out var mappedValue))
                         {
                             decodedValue = mappedValue;
@@ -280,17 +359,6 @@ namespace SnmpServerPoller.Snmp
                         else if (map != null && map.TryGetValue(decodedValue, out var inlineMappedValue))
                         {
                             decodedValue = inlineMappedValue;
-                        }
-                        // Если маппинг не найден, но тип числовой - пробуем применить как есть
-                        else if (map != null && long.TryParse(decodedValue, out _))
-                        {
-                            // Числовое значение без маппинга оставляем как есть
-                        }
-                        
-                        // Применяем форматирование если указано
-                        if (!string.IsNullOrEmpty(format))
-                        {
-                            decodedValue = ApplyFormat(decodedValue, format);
                         }
                         
                         result[index] = decodedValue;
@@ -411,23 +479,19 @@ namespace SnmpServerPoller.Snmp
             
             switch (format.ToLower())
             {
-                case "speed":
-                    // Форматирование скорости: значение в битах/сек -> человекочитаемый формат
-                    if (ulong.TryParse(value, out ulong speed))
+                case "speed_mbps":
+                    // Форматирование скорости из Мбит/с в человекочитаемый формат
+                    // ifHighSpeed (.1.3.6.1.2.1.31.1.1.1.15) возвращается в Мбит/с
+                    if (ulong.TryParse(value, out ulong speedMbps))
                     {
-                        if (speed == 0)
-                            return "0";
-                        if (speed >= 1_000_000_000_000)
-                            return $"{speed / 1_000_000_000_000.0:F1} Tb/s";
-                        if (speed >= 1_000_000_000)
-                            return $"{speed / 1_000_000_000.0:F1} Gb/s";
-                        if (speed >= 1_000_000)
-                            return $"{speed / 1_000_000.0:F1} Mb/s";
-                        if (speed >= 1_000)
-                            return $"{speed / 1_000.0:F1} Kb/s";
-                        return $"{speed} b/s";
+                        if (speedMbps == 0)
+                            return "0 bps";
+                        if (speedMbps >= 1_000)
+                            return $"{speedMbps / 1_000.0:F1} Gb/s";
+                        return $"{speedMbps} Mb/s";
                     }
-                    break;
+                    // Если значение не числовое (например, OID или строка), возвращаем "N/A"
+                    return "N/A";
             }
             
             return value;
