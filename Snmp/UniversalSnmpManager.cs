@@ -286,6 +286,17 @@ namespace SnmpServerPoller.Snmp
                             numericValue = DecodeRawData(rawValue, kvp.Value);
                         }
                         
+                        // Если numericValue все еще null или пустой, пробуем распарсить строку как число для форматирования
+                        if (string.IsNullOrEmpty(numericValue) && !string.IsNullOrEmpty(format))
+                        {
+                            string rawValue = kvp.Value.ToString();
+                            // Пытаемся распарсить сырую строку как число
+                            if (ulong.TryParse(rawValue, out ulong parsedValue))
+                            {
+                                numericValue = parsedValue.ToString();
+                            }
+                        }
+                        
                         // Сначала применяем форматирование если указано
                         if (!string.IsNullOrEmpty(format))
                         {
