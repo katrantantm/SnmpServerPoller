@@ -271,9 +271,14 @@ namespace SnmpServerPoller.Snmp
                         string rawValue = kvp.Value.ToString();
                         string decodedValue = DecodeRawData(rawValue, kvp.Value);
                         
-                        // Применяем справочник значений (valueMapping) если указан
+                        // Применяем форматирование если указано (ДО маппинга, чтобы числовые значения обрабатывались корректно)
+                        if (!string.IsNullOrEmpty(format))
+                        {
+                            decodedValue = ApplyFormat(decodedValue, format);
+                        }
+                        // Применяем справочник значений (valueMapping) если указан и нет форматирования
                         // valueMapping используется для преобразования числовых кодов в названия (например, ifType: 6 -> ethernetCsmacd)
-                        if (valueMapping != null && valueMapping.TryGetValue(decodedValue, out var mappedValue))
+                        else if (valueMapping != null && valueMapping.TryGetValue(decodedValue, out var mappedValue))
                         {
                             decodedValue = mappedValue;
                         }
@@ -281,12 +286,6 @@ namespace SnmpServerPoller.Snmp
                         else if (map != null && map.TryGetValue(decodedValue, out var inlineMappedValue))
                         {
                             decodedValue = inlineMappedValue;
-                        }
-                        
-                        // Применяем форматирование если указано (после маппинга)
-                        if (!string.IsNullOrEmpty(format))
-                        {
-                            decodedValue = ApplyFormat(decodedValue, format);
                         }
                         
                         result[index] = decodedValue;
