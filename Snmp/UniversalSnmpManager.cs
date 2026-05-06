@@ -258,78 +258,61 @@ namespace SnmpServerPoller.Snmp
                         
                         result[index] = decodedValue;
                     }
-                    // Для числовых полей (long, int, uint, ulong) с форматированием
-                    else if (!string.IsNullOrEmpty(format) && (fieldType == "long" || fieldType == "int" || fieldType == "uint" || fieldType == "ulong"))
+                    // Для числовых полей (long, int, uint, ulong) с форматированием ИЛИ valueMapping
+                    else if ((fieldType == "long" || fieldType == "int" || fieldType == "uint" || fieldType == "ulong"))
                     {
                         // Берем значение напрямую из числового типа SNMP
-                        string formatInputValue = null;
+                        string numericValue = null;
                         if (kvp.Value is Gauge32 gauge32)
                         {
-                            formatInputValue = gauge32.Value.ToString();
+                            numericValue = gauge32.Value.ToString();
                         }
                         else if (kvp.Value is Integer32 asnInt)
                         {
-                            formatInputValue = asnInt.Value.ToString();
+                            numericValue = asnInt.Value.ToString();
                         }
                         else if (kvp.Value is Counter32 counter32)
                         {
-                            formatInputValue = counter32.Value.ToString();
+                            numericValue = counter32.Value.ToString();
                         }
                         else if (kvp.Value is Counter64 counter64)
                         {
-                            formatInputValue = counter64.Value.ToString();
+                            numericValue = counter64.Value.ToString();
                         }
                         else
                         {
                             // Пытаемся получить строковое представление и распарсить
                             string rawValue = kvp.Value.ToString();
-                            formatInputValue = DecodeRawData(rawValue, kvp.Value);
+                            numericValue = DecodeRawData(rawValue, kvp.Value);
                         }
                         
-                        if (!string.IsNullOrEmpty(formatInputValue))
+                        // Сначала применяем форматирование если указано
+                        if (!string.IsNullOrEmpty(format))
                         {
-                            result[index] = ApplyFormat(formatInputValue, format);
+                            if (!string.IsNullOrEmpty(numericValue))
+                            {
+                                result[index] = ApplyFormat(numericValue, format);
+                            }
+                            else
+                            {
+                                result[index] = "N/A";
+                            }
+                        }
+                        // Затем применяем valueMapping если указано (и нет форматирования)
+                        else if (valueMapping != null && !string.IsNullOrEmpty(numericValue))
+                        {
+                            if (valueMapping.TryGetValue(numericValue, out var mappedValue))
+                            {
+                                result[index] = mappedValue;
+                            }
+                            else
+                            {
+                                result[index] = numericValue;
+                            }
                         }
                         else
                         {
-                            result[index] = "N/A";
-                        }
-                    }
-                    // Для числовых полей (long, int, uint, ulong) с valueMapping (без форматирования)
-                    else if (valueMapping != null && (fieldType == "long" || fieldType == "int" || fieldType == "uint" || fieldType == "ulong"))
-                    {
-                        // Берем значение напрямую из числового типа SNMP для маппинга
-                        string mapInputValue = null;
-                        if (kvp.Value is Gauge32 gauge32)
-                        {
-                            mapInputValue = gauge32.Value.ToString();
-                        }
-                        else if (kvp.Value is Integer32 asnInt)
-                        {
-                            mapInputValue = asnInt.Value.ToString();
-                        }
-                        else if (kvp.Value is Counter32 counter32)
-                        {
-                            mapInputValue = counter32.Value.ToString();
-                        }
-                        else if (kvp.Value is Counter64 counter64)
-                        {
-                            mapInputValue = counter64.Value.ToString();
-                        }
-                        else
-                        {
-                            string rawValue = kvp.Value.ToString();
-                            mapInputValue = DecodeRawData(rawValue, kvp.Value);
-                        }
-                        
-                        // Применяем справочник значений
-                        if (!string.IsNullOrEmpty(mapInputValue) && valueMapping.TryGetValue(mapInputValue, out var mappedValue))
-                        {
-                            result[index] = mappedValue;
-                        }
-                        else
-                        {
-                            result[index] = mapInputValue ?? "N/A";
+                            result[index] = numericValue ?? "N/A";
                         }
                     }
                     // Для полей типа oid с valueMapping
@@ -355,32 +338,9 @@ namespace SnmpServerPoller.Snmp
                         string rawValue = kvp.Value.ToString();
                         string decodedValue = DecodeRawData(rawValue, kvp.Value);
                         
-                        // Применяем форматирование если указано (используем оригинальное значение для числовых форматов)
-                        if (!string.IsNullOrEmpty(format))
-                        {
-                            // Для числовых форматов (speed_mbps) берем значение напрямую из Gauge32/Integer
-                            string formatInputValue = rawValue;
-                            if (kvp.Value is Gauge32 gauge32)
-                            {
-                                formatInputValue = gauge32.Value.ToString();
-                            }
-                            else if (kvp.Value is Integer32 asnInt)
-                            {
-                                formatInputValue = asnInt.Value.ToString();
-                            }
-                            else if (kvp.Value is Counter32 counter32)
-                            {
-                                formatInputValue = counter32.Value.ToString();
-                            }
-                            else if (kvp.Value is Counter64 counter64)
-                            {
-                                formatInputValue = counter64.Value.ToString();
-                            }
-                            decodedValue = ApplyFormat(formatInputValue, format);
-                        }
-                        // Применяем справочник значений (valueMapping) если указан и нет форматирования
+                        // Применяем справочник значений (valueMapping) если указан
                         // valueMapping используется для преобразования числовых кодов в названия (например, ifType: 6 -> ethernetCsmacd)
-                        else if (valueMapping != null && valueMapping.TryGetValue(decodedValue, out var mappedValue))
+                        if (valueMapping != null && valueMapping.TryGetValue(decodedValue, out var mappedValue))
                         {
                             decodedValue = mappedValue;
                         }
