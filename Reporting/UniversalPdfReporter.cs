@@ -111,7 +111,7 @@ namespace SnmpServerPoller.Reporting
             if (fieldConfig.Format == "speed" && ulong.TryParse(rawValue, out ulong speed))
             {
                 // Если значение меньше 100000, предполагаем что это Мбит/с и конвертируем в бит/с
-                if (speed < 100_000)
+                if (speed < 100_000 && speed > 0)
                     speed = speed * 1_000_000;
                 
                 if (speed >= 1_000_000_000)
@@ -121,6 +121,12 @@ namespace SnmpServerPoller.Reporting
                 if (speed >= 1_000)
                     return $"{(speed / 1_000.0):F1} Kbps";
                 return $"{speed} bps";
+            }
+            
+            // Если значение не числовое (например, OID или строка), возвращаем N/A
+            if (fieldConfig.Format == "speed")
+            {
+                return "N/A";
             }
             
             return rawValue;
