@@ -411,21 +411,16 @@ namespace SnmpServerPoller.Snmp
             
             switch (format.ToLower())
             {
-                case "speed":
-                    // Форматирование скорости в человекочитаемый формат
-                    // ifSpeed (.1.3.6.1.2.1.2.2.1.5) возвращается в битах/сек
+                case "speed_mbps":
+                    // Форматирование скорости из Мбит/с в человекочитаемый формат
                     // ifHighSpeed (.1.3.6.1.2.1.31.1.1.1.15) возвращается в Мбит/с
-                    if (ulong.TryParse(value, out ulong speed))
+                    if (ulong.TryParse(value, out ulong speedMbps))
                     {
-                        if (speed == 0)
+                        if (speedMbps == 0)
                             return "0 bps";
-                        if (speed >= 1_000_000_000)
-                            return $"{speed / 1_000_000_000.0:F1} Gb/s";
-                        if (speed >= 1_000_000)
-                            return $"{speed / 1_000_000.0:F1} Mb/s";
-                        if (speed >= 1_000)
-                            return $"{speed / 1_000.0:F1} Kb/s";
-                        return $"{speed} bps";
+                        if (speedMbps >= 1_000)
+                            return $"{speedMbps / 1_000.0:F1} Gb/s";
+                        return $"{speedMbps} Mb/s";
                     }
                     // Если значение не числовое (например, OID или строка), возвращаем "N/A"
                     return "N/A";
