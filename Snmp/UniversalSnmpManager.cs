@@ -342,7 +342,8 @@ namespace SnmpServerPoller.Snmp
                         // Пробуем найти в справочнике сначала как есть, затем с ведущей точкой
                         if (!valueMapping.TryGetValue(decodedValue, out var mappedValue))
                         {
-                            mappedValue = rawValue.StartsWith(".") ? valueMapping.GetValueOrDefault(rawValue.Substring(1)) : valueMapping.GetValueOrDefault("." + rawValue);
+                            string altKey = rawValue.StartsWith(".") ? rawValue.Substring(1) : "." + rawValue;
+                            valueMapping.TryGetValue(altKey, out mappedValue);
                         }
                         
                         result[index] = mappedValue ?? rawValue;
