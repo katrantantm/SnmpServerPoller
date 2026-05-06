@@ -1,1 +1,4 @@
-Nothing should be ignored based on the provided file changes, as only a source code file (`Snmp/UniversalSnmpManager.cs`) was modified without any build artifacts, dependencies, or temporary files being added.
+```
+# Configuration files
+Config/snmp-tables.json
+```
