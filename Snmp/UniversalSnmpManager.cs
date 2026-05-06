@@ -258,12 +258,20 @@ namespace SnmpServerPoller.Snmp
                         
                         result[index] = decodedValue;
                     }
-                    // Для полей типа "oid" отображаем OID как строку
+                    // Для полей типа "oid" отображаем OID как строку и применяем valueMapping если указан
                     else if (fieldType == "oid")
                     {
                         string rawValue = kvp.Value.ToString();
                         // OID уже приходит в правильном формате, просто используем его
-                        result[index] = rawValue;
+                        string decodedValue = rawValue;
+                        
+                        // Применяем справочник значений (valueMapping) если указан для преобразования OID в название
+                        if (valueMapping != null && valueMapping.TryGetValue(decodedValue, out var mappedValue))
+                        {
+                            decodedValue = mappedValue;
+                        }
+                        
+                        result[index] = decodedValue;
                     }
                     else
                     {
