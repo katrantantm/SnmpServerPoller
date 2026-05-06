@@ -79,7 +79,12 @@
       "valueMapping": "hrStorageType",
       "fields": [
         { "name": "Index", "oid": ".1.3.6.1.2.1.25.2.3.1.1", "type": "index" },
-        { "name": "Type", "oid": ".1.3.6.1.2.1.25.2.3.1.2", "type": "oid" },
+        { 
+          "name": "Type", 
+          "oid": ".1.3.6.1.2.1.25.2.3.1.2", 
+          "type": "oid",
+          "valueMapping": "hrStorageType"
+        },
         { "name": "Descr", "oid": ".1.3.6.1.2.1.25.2.3.1.3", "type": "string" },
         { "name": "Units", "oid": ".1.3.6.1.2.1.25.2.3.1.4", "type": "long" },
         { "name": "Size", "oid": ".1.3.6.1.2.1.25.2.3.1.5", "type": "long" },
@@ -117,7 +122,12 @@
       "valueMapping": "hrDeviceType",
       "fields": [
         { "name": "Index", "oid": ".1.3.6.1.2.1.25.3.2.1.1", "type": "index" },
-        { "name": "Type", "oid": ".1.3.6.1.2.1.25.3.2.1.2", "type": "oid" },
+        { 
+          "name": "Type", 
+          "oid": ".1.3.6.1.2.1.25.3.2.1.2", 
+          "type": "oid",
+          "valueMapping": "hrDeviceType"
+        },
         { "name": "Descr", "oid": ".1.3.6.1.2.1.25.3.2.1.3", "type": "string" },
         { "name": "ID", "oid": ".1.3.6.1.2.1.25.3.2.1.4", "type": "string" },
         { "name": "Status", "oid": ".1.3.6.1.2.1.25.3.2.1.5", "type": "int", "valueMapping": "hrDeviceStatus" },

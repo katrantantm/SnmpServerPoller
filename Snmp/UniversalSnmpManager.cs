@@ -279,10 +279,28 @@ namespace SnmpServerPoller.Snmp
                         string rawValue = kvp.Value.ToString();
                         string decodedValue = DecodeRawData(rawValue, kvp.Value);
                         
-                        // Применяем форматирование если указано (ДО маппинга, чтобы числовые значения обрабатывались корректно)
+                        // Применяем форматирование если указано (используем оригинальное значение для числовых форматов)
                         if (!string.IsNullOrEmpty(format))
                         {
-                            decodedValue = ApplyFormat(decodedValue, format);
+                            // Для числовых форматов (speed_mbps) берем значение напрямую из Gauge32/Integer
+                            string formatInputValue = rawValue;
+                            if (kvp.Value is Gauge32 gauge32)
+                            {
+                                formatInputValue = gauge32.Value.ToString();
+                            }
+                            else if (kvp.Value is Integer32 asnInt)
+                            {
+                                formatInputValue = asnInt.Value.ToString();
+                            }
+                            else if (kvp.Value is Counter32 counter32)
+                            {
+                                formatInputValue = counter32.Value.ToString();
+                            }
+                            else if (kvp.Value is Counter64 counter64)
+                            {
+                                formatInputValue = counter64.Value.ToString();
+                            }
+                            decodedValue = ApplyFormat(formatInputValue, format);
                         }
                         // Применяем справочник значений (valueMapping) если указан и нет форматирования
                         // valueMapping используется для преобразования числовых кодов в названия (например, ifType: 6 -> ethernetCsmacd)
